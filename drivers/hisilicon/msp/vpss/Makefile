@@ -5,6 +5,10 @@ VPSS_DIR := $(srctree)/drivers/hisilicon/msp/vpss
 
 EXTRA_CFLAGS += -Werror
 
+ifeq ($(CONFIG_HI_TEE_SUPPORT),y)
+EXTRA_CFLAGS += -DHI_TEE_SUPPORT
+endif
+
 EXTRA_CFLAGS += -I$(srctree)/drivers/hisilicon/sdk/common-include \
 		-I$(srctree)/drivers/hisilicon/common/include \
 		-I$(srctree)/drivers/hisilicon/sdk/msp-include \
