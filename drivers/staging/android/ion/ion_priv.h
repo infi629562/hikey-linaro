@@ -455,6 +455,8 @@ struct ion_page_pool {
 	struct plist_node list;
 };
 
+#define	IOMMU_LIST_SUPPORT  1
+
 struct ion_page_pool *ion_page_pool_create(gfp_t gfp_mask, unsigned int order,
 					   bool cached);
 void ion_page_pool_destroy(struct ion_page_pool *);

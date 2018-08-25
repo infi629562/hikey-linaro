@@ -275,4 +275,16 @@ struct ion_platform_heap *hisi_get_cma_heap(const char *name);
 
 int ion_iommu_map_ref(struct ion_client *client, struct ion_handle *handle,
 						unsigned int *ref);
+/**
+*  ion_get()
+*  @iommu_addr:	the iommu addr
+*/
+ int ion_get(unsigned int iommu_addr);
+
+/**
+* ion_put() -
+* @iommu_addr:	the iommu addr
+*/
+ int ion_put(unsigned	int iommu_addr);
+
 #endif /* _LINUX_ION_H */

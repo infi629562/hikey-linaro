@@ -22,6 +22,10 @@ static int num_heaps;
 static struct ion_device *idev;
 static struct ion_heap **heaps;
 
+#ifdef	IOMMU_LIST_SUPPORT
+	 struct ion_device *ion_dev;
+#endif
+
 struct ion_client *hisi_ion_client_create(const char *name)
 {
 	return ion_client_create(idev, name);
@@ -64,6 +68,11 @@ static int hisi_ion_probe(struct platform_device *pdev)
 		ion_device_add_heap(idev, heaps[i]);
 	}
 	platform_set_drvdata(pdev, idev);
+
+#ifdef	IOMMU_LIST_SUPPORT
+	ion_dev	= 	idev;
+#endif
+
 	return 0;
 err:
 	for (i = 0; i < num_heaps; i++) {

@@ -41,6 +41,15 @@
 #include "ion_priv.h"
 #include "compat_ion.h"
 
+#ifdef	IOMMU_LIST_SUPPORT
+extern	 struct ion_device *ion_dev;
+#endif
+
+#ifdef ION_DEBUG
+	#define	HI_ION_DEBUG	printk
+#else
+	#define	HI_ION_DEBUG
+#endif
 bool ion_buffer_fault_user_mappings(struct ion_buffer *buffer)
 {
 	return (buffer->flags & ION_FLAG_CACHED) &&
@@ -1860,3 +1869,121 @@ void __init ion_reserve(struct ion_platform_data *data)
 			data->heaps[i].size);
 	}
 }
+
+#ifdef IOMMU_LIST_SUPPORT
+
+struct ion_handle *get_handle_by_iommu_addr(unsigned int iommu_addr){
+
+	struct 	rb_node 	*n1;
+	struct 	rb_node 	*n2;
+	struct 	ion_handle 	*ion_handle = NULL;
+	int 			flag = 0;
+
+	for (n1 = rb_first(&ion_dev->clients); n1; n1 = rb_next(n1)) {
+
+		struct ion_client *client = rb_entry(n1, struct ion_client, node);
+		for (n2 = rb_first(&client->handles); n2; n2 = rb_next(n2)) {
+			struct ion_handle *handle = rb_entry(n2,struct ion_handle, node);
+			struct ion_buffer *buffer = NULL;
+			struct ion_iommu_map *iommu_map	=  NULL;
+
+			if(handle == NULL){
+				continue;
+			}
+			if(handle->buffer == NULL){
+				continue;
+			}
+
+			buffer = handle->buffer;
+			if(buffer->iommu_map == NULL){
+					continue ;
+			}
+
+			iommu_map	=  buffer->iommu_map;
+			if(iommu_map->format.iova_start == iommu_addr)
+			{
+					ion_handle	=	handle;
+					flag =	1	;
+					break;
+			}
+		}
+
+		if(flag ==1){
+			break;
+		}
+
+	}
+
+	return ion_handle;
+}
+ int ion_get(unsigned int iommu_addr){
+
+	struct 	ion_handle 	*handle	= NULL;
+	struct	ion_buffer	*buffer	= NULL;
+	int 	ret	= -1;
+
+	if(iommu_addr == 0){
+		return -1;
+	}
+
+	handle	= get_handle_by_iommu_addr(iommu_addr);
+
+	if(handle == NULL){
+		return ret;
+	}
+	if( handle->buffer == NULL){
+		return ret;
+	}
+	buffer	= handle->buffer;
+	if(buffer->iommu_map == NULL){
+		return ret;
+	}
+
+
+	kref_get(&buffer->iommu_map->ref);
+	ion_buffer_get(buffer);
+	ion_handle_get(handle);
+
+	return 0;
+}
+
+EXPORT_SYMBOL(ion_get);
+ int ion_put(unsigned	int iommu_addr){
+	struct 	ion_handle 	*handle	   = NULL;
+	struct	ion_buffer	*buffer    = NULL;
+	struct  ion_iommu_map	*iommu_map = NULL;
+	int	ret	=	-1;
+
+
+	if(iommu_addr == 0){
+		return -1;
+	}
+
+	handle	= get_handle_by_iommu_addr(iommu_addr);
+	if(handle == NULL){
+		return ret;
+	}
+
+	buffer	= handle->buffer;
+	if( handle->buffer == NULL){
+		return ret;
+	}
+
+	buffer	= handle->buffer;
+	if(buffer->iommu_map == NULL){
+		return ret;
+	}
+
+	iommu_map = buffer->iommu_map;
+
+
+	kref_put(&iommu_map->ref, do_iommu_unmap);
+	ion_buffer_put(buffer);
+	ion_handle_put(handle);
+
+
+	return 0;
+}
+EXPORT_SYMBOL(ion_put);
+
+#endif
