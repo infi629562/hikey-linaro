@@ -30,4 +30,6 @@ mmb_addr_t get_nonsecsmmu_by_secsmmu(HI_U32 sec_smmu);
 int mmb_buf_get(HI_U32 addr, HI_U32 iommu);
 int mmb_buf_put(HI_U32 addr, HI_U32 iommu);
 
+int query_buffer_source(HI_U32 iommu_addr, HI_S32 *source);
+int query_secure_buffer_source(HI_U32 sec_smmu, HI_S32 *source);
 #endif

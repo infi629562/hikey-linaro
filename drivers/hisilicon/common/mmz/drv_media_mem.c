@@ -38,6 +38,7 @@
 #include <linux/dma-mapping.h>
 #include <asm/memory.h>
 
+#include <linux/hisilicon/hisi-iommu.h>
 #include <asm/tlbflush.h>
 #include <asm/pgtable.h>
 #include <linux/seq_file.h>
@@ -1218,6 +1219,97 @@ int mmb_put(u32 addr, int iommu)
 	}
 
 	up(&mmz_lock);
+
+	return HI_SUCCESS;
+}
+
+int mem_source_query(u32 iommu_addr, int *source)
+{
+        phys_addr_t phys = 0;
+        hil_mmb_t *mmb = NULL;
+        hil_mmz_t *zone = NULL;
+        hil_mmb_t *m = NULL;
+
+        if (!source || !iommu_addr) {
+                HI_PRINT("%s: source or iommu_addr should not be null!\n", __func__);
+                return HI_FAILURE;
+	}
+
+	phys = hisi_iommu_domain_iova_to_phys(iommu_addr);
+	if (!phys) {
+		/* iommu_addr is illegal */
+		*source = -1;
+		goto out;
+	}
+
+	down(&mmz_lock);
+	list_for_each_entry(zone, &mmz_list, list) {
+		struct rb_node *n;
+
+		if (zone->iommu != 1)
+			continue;
+
+		for (n = rb_first(&zone->root); n; n = rb_next(n)) {
+			m = NULL;
+
+			m = rb_entry(n, hil_mmb_t, s_node);
+			if ((m->iommu_addr <= iommu_addr) &&
+			    (iommu_addr < (m->iommu_addr + m->length))) {
+				mmb = m;
+				break;
+			}
+		}
+	}
+	if (!mmb)
+		*source = 1; /* the iommu_addr from other soucre such ion    */
+	else
+		*source = 0; /* the iommu_addr from mmz drvier   */
+
+	up(&mmz_lock);
+
+out:
+	return HI_SUCCESS;
+}
+
+int sec_mem_source_query(u32 sec_iommu, int *source)
+{
+
+	hil_mmb_t *mmb = NULL;
+	hil_mmz_t *zone = NULL;
+
+	*source = 1;
+
+	if (!sec_iommu) {
+		HI_PRINT("%s sec_iommu:0x%x err args\n", __func__, sec_iommu);
+		return HI_FAILURE;
+	}
+
+	down(&mmz_lock);
+	list_for_each_entry(zone, &mmz_list, list) {
+		struct rb_node *n;
+		for (n = rb_first(&zone->root); n; n = rb_next(n)) {
+			hil_mmb_t *m;
+
+			if (zone->iommu)
+				m = rb_entry(n, hil_mmb_t, s_node);
+			else
+				m = rb_entry(n, hil_mmb_t, node);
+
+			if (m->sec_smmu != sec_iommu ){
+				continue;
+			}else{
+				mmb = m;
+				goto end;
+			}
+		}
+	}
+end:
+	up(&mmz_lock);
+
+
+	if (NULL != mmb){
+		*source = 0;
+	}
 
 	return HI_SUCCESS;
 }

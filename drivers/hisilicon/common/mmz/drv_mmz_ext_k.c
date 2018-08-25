@@ -510,6 +510,48 @@ HI_S32 HI_DRV_SMMU_Buffer_Put(SMMU_BUFFER_S *pSmmuBuf)
 	return mmb_buf_put(pSmmuBuf->u32StartSmmuAddr, 1);
 }
 
+HI_S32 HI_DRV_SMMU_Query_Buffer_Source(SMMU_BUFFER_S *pSmmuBuf, HI_S32 *source)
+{
+	HI_S32 ret = HI_FAILURE;
+	HI_S32 mem_source = 0;
+
+	if (!pSmmuBuf || !source) {
+		HI_PRINT("[%s] err args and Query Source failed!\n", __func__);
+		return HI_FAILURE;
+	}
+
+	ret = query_buffer_source(pSmmuBuf->u32StartSmmuAddr, &mem_source);
+	if (ret) {
+		HI_PRINT("query_buffer_source failed, smmu:0x%x \n", pSmmuBuf->u32StartSmmuAddr);
+		return HI_FAILURE;
+	}
+
+	*source = mem_source;
+
+	return HI_SUCCESS;
+}
+
+HI_S32 HI_DRV_SEC_SMMU_Query_Buffer_Source(unsigned int sec_smmu, HI_S32 *source)
+{
+	HI_S32 ret = HI_FAILURE;
+	HI_S32 mem_source = 1;
+
+	if (!sec_smmu) {
+		HI_PRINT("[%s] err args and Query failed!\n", __func__);
+		return HI_FAILURE;
+	}
+
+	ret = query_secure_buffer_source(sec_smmu, &mem_source);
+	if (ret !=HI_SUCCESS) {
+		HI_PRINT("query_buffer_source failed, smmu:0x%x \n", sec_smmu);
+		return HI_FAILURE;
+	}
+
+	*source = mem_source;
+
+	return HI_SUCCESS;
+}
+
 HI_S32	HI_DRV_SECMMZ_Alloc(const HI_CHAR *bufname, HI_U32 size, HI_U32 align, MMZ_BUFFER_S *pSecMBuf)
 {
 	mmb_addr_t phyaddr;
@@ -786,6 +828,8 @@ EXPORT_SYMBOL(HI_DRV_SMMU_GetSmmuAddrByVirt);
 EXPORT_SYMBOL(HI_DRV_SMMU_GetPageTableAddr);
 EXPORT_SYMBOL(HI_DRV_SMMU_Buffer_Get);
 EXPORT_SYMBOL(HI_DRV_SMMU_Buffer_Put);
+EXPORT_SYMBOL(HI_DRV_SMMU_Query_Buffer_Source);
+EXPORT_SYMBOL(HI_DRV_SEC_SMMU_Query_Buffer_Source);
 
 EXPORT_SYMBOL(HI_DRV_SECMMZ_Alloc);
 EXPORT_SYMBOL(HI_DRV_SECMMZ_Release);

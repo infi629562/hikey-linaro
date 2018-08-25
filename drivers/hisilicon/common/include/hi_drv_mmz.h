@@ -74,7 +74,7 @@ HI_VOID HI_DRV_MMZ_UnmapAndRelease(MMZ_BUFFER_S *psMBuf);
 HI_S32	HI_DRV_MMZ_Alloc(const char *bufname, char *zone_name, HI_U32 size, int align, MMZ_BUFFER_S *psMBuf);
 
 /*map kernel-state address after alloc mmz memory for cache, and flushing cache with HI_DRV_MMZ_Flush*/
-/*CNcomment:����mmz��Cache�ڴ�󣬽����ں�̬��ַ��ӳ��, ��ʹ��HI_DRV_MMZ_Flush����cacheͬ�� */
+/*CNcomment:����mmz��Cache�ڴ�����������ں�̬��ַ��ӳ��, ��ʹ��HI_DRV_MMZ_Flush����cacheͬ�� */
 HI_S32 HI_DRV_MMZ_MapCache(MMZ_BUFFER_S *psMBuf);
 
 /*flush cache data to memory, needed to call when map memory with HI_DRV_MMZ_MapCache*/
@@ -82,7 +82,7 @@ HI_S32 HI_DRV_MMZ_MapCache(MMZ_BUFFER_S *psMBuf);
 HI_S32 HI_DRV_MMZ_Flush(MMZ_BUFFER_S *psMBuf);
 
 /*alloc mmz memory, and map kernel-state address*/
-/*CNcomment:����mmz�ڴ�󣬽����ں�̬��ַ��ӳ��*/
+/*CNcomment:����mmz�ڴ�����������ں�̬��ַ��ӳ��*/
 HI_S32	HI_DRV_MMZ_Map(MMZ_BUFFER_S *psMBuf);
 
 /*unmap kernel-state address*/
@@ -90,7 +90,7 @@ HI_S32	HI_DRV_MMZ_Map(MMZ_BUFFER_S *psMBuf);
 HI_VOID HI_DRV_MMZ_Unmap(MMZ_BUFFER_S *psMBuf);
 
 /*release unmapped mmz memory */
-/*CNcomment:���ӳ��󣬻�û�н����ں�̬ӳ���mmz�ڴ�����ͷ�*/
+/*CNcomment:���ӳ���������û�н����ں�̬ӳ���mmz�ڴ�����ͷ�*/
 HI_VOID HI_DRV_MMZ_Release(MMZ_BUFFER_S *psMBuf);
 
 /* get phy addr addr by kvirt	*/
@@ -185,6 +185,34 @@ HI_S32 HI_DRV_SECSMMU_Buffer_Get(SMMU_BUFFER_S *pSecSmmuBuf);
 /* decrement refcount for sec smmu buffer  */
 HI_S32 HI_DRV_SECSMMU_Buffer_Put(SMMU_BUFFER_S *pSecSmmuBuf);
 
+
+/* query where the iommu addr come from
+ * pSmmuBuf: input, smmu address should be input
+ * source: output, 0: iommu addr from mmz driver
+ *		   1: iommu addr from other driver such as  ion/gpu ..
+ *		   -1: iommu addr is illegal
+ * return val:
+ *		   0: exec successfully
+ *		   !0: exec failed
+ *
+ * when return val is !0,the source should be ignored.
+ * */
+HI_S32 HI_DRV_SMMU_Query_Buffer_Source(SMMU_BUFFER_S *pSmmuBuf, HI_S32 *source);
+/** @} */
+
+
+
+/* query where the sec_iommu addr come from
+ * pSmmuBuf: input, smmu address should be input
+ * source: output, 0: sec_iommu addr from mmz driver
+ *		  -1: sec_iommu addr from other driver such as  ion/gpu ..
+ * return val:
+ *		   0: exec successfully
+ *		   !0: exec failed
+ *
+ * when return val is !0,the source should be ignored.
+ * */
+HI_S32 HI_DRV_SEC_SMMU_Query_Buffer_Source(unsigned int	 sec_smmu, HI_S32 *source);
 /** @} */
 
 int HI_DRV_MMZ_Init(void);

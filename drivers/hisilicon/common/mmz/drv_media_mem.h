@@ -155,6 +155,8 @@ extern int sec_mmb_put(u32 addr, int iommu);
 extern int mmb_get(u32 addr, int iommu);
 extern int mmb_put(u32 addr, int iommu);
 
+extern int mem_source_query(u32 iommu_addr, int *source);
+extern int sec_mem_source_query(u32 iommu_addr, int *source);
 extern void* hil_mmb_map2kern(hil_mmb_t *mmb);
 extern void* hil_mmb_map2kern_cached(hil_mmb_t *mmb);
 extern int hil_mmb_unmap(hil_mmb_t *mmb, void *addr);

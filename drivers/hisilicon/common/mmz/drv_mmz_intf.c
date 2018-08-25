@@ -199,6 +199,22 @@ int mmb_buf_put(HI_U32 addr, HI_U32 iommu)
 	return mmb_put(addr, iommu);
 }
 
+int query_buffer_source(HI_U32 iommu_addr, HI_S32 *source)
+{
+	if (!source)
+		return -1;
+
+	return mem_source_query(iommu_addr, source);
+}
+
+int query_secure_buffer_source(HI_U32 sec_smmu, HI_S32 *source)
+{
+	if (!sec_smmu)
+		return HI_FAILURE;
+	return sec_mem_source_query(sec_smmu, source);
+}
+
+
 EXPORT_SYMBOL(new_mmb);
 EXPORT_SYMBOL(delete_mmb);
 EXPORT_SYMBOL(remap_mmb);
@@ -213,3 +229,5 @@ EXPORT_SYMBOL(get_sec_smmu_by_phys);
 EXPORT_SYMBOL(get_sec_smmu_by_nosmmu);
 EXPORT_SYMBOL(mmb_buf_get);
 EXPORT_SYMBOL(mmb_buf_put);
+EXPORT_SYMBOL(query_buffer_source);
+EXPORT_SYMBOL(query_secure_buffer_source);
