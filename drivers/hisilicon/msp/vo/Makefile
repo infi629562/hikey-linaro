@@ -11,6 +11,7 @@ EXTRA_CFLAGS += -I$(srctree)/drivers/hisilicon/sdk/common-include \
 		-I$(srctree)/drivers/hisilicon/sdk/msp-api/higo/include
 
 EXTRA_CFLAGS += -DHI_DISP_BUILD_FULL  -D__DISP_PLATFORM_SDK__ -D__DISP_D0_FOLLOW_D1__ -D__DISP_SELF_START__
+EXTRA_CFLAGS += -DHI_SMMU_SUPPORT
 
 ifeq ($(CFG_HIFB_CURSOR_SUPPORT), y)
 EXTRA_CFLAGS += -DHI_GFX_USE_G3

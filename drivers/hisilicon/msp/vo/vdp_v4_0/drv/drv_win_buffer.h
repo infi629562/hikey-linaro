@@ -54,21 +54,19 @@ typedef struct tagWB_SOURCE_INFO_S
     PFN_PUT_FRAME_CALLBACK pfRlsFrame;
 }WB_SOURCE_INFO_S;
 
-
-#define WB_BUFFER_DEBUG_FRAME_RECORD_NUMBER 32
 typedef struct tagWB_DEBUG_INFO_S
 {
     HI_U32 u32RecordNumber;
 
-    HI_U32 u32InputFrameID[WB_BUFFER_DEBUG_FRAME_RECORD_NUMBER];
+    HI_U32 u32InputFrameID[DISP_BUF_NODE_MAX_NUMBER];
     HI_U32 u32InputPos;
     HI_U32 u32Input;
 
-    HI_U32 u32CfgFrameID[WB_BUFFER_DEBUG_FRAME_RECORD_NUMBER];
+    HI_U32 u32CfgFrameID[DISP_BUF_NODE_MAX_NUMBER];
     HI_U32 u32CfgPos;
     HI_U32 u32Config;
 
-    HI_U32 u32RlsFrameID[WB_BUFFER_DEBUG_FRAME_RECORD_NUMBER];
+    HI_U32 u32RlsFrameID[DISP_BUF_NODE_MAX_NUMBER];
     HI_U32 u32RlsPos;
     HI_U32 u32Release;
 
@@ -76,6 +74,9 @@ typedef struct tagWB_DEBUG_INFO_S
     HI_U32 u32QueueFrame;
     HI_U32 u32Underload;
     HI_U32 u32Disacard;
+
+    HI_U32 u32IncreaseMemRefCnt;
+    HI_U32 u32DecreaseMemRefCnt;
 }WB_DEBUG_INFO_S;
 
 typedef struct tagWB_POOL_S
@@ -97,6 +98,8 @@ typedef struct tagWB_POOL_S
 	spinlock_t  spinlock_BufPool;
 
     WB_DEBUG_INFO_S *pstDebugInfo;
+    HI_U32   u32QuickRlsFrameIndex;
+    HI_U32   u32QuickRlsFrameAddr;
 }WB_POOL_S;
 
 HI_S32 WinBuf_Create(HI_U32 u32BufNum, HI_U32 u32MemType, WIN_BUF_ALLOC_PARA_S *pstAlloc, WB_POOL_S *pstWinBP);
@@ -110,6 +113,7 @@ HI_S32 WinBuf_PutNewFrame(WB_POOL_S *pstWinBP, HI_DRV_VIDEO_FRAME_S *pstFrame, H
 
 // release frame that has been displayed and set configed frame as displayed frame.
 HI_S32 WinBuf_RlsAndUpdateUsingFrame(WB_POOL_S *pstWinBP);
+HI_S32 WinBuf_RlsFrameWithHandle(WB_POOL_S *pstWinBP, HI_DRV_VIDEO_FRAME_S *pstFrm);
 HI_S32 WinBuf_RepeatDisplayedFrame(WB_POOL_S *pstWinBP);
 HI_S32 WinBuf_DiscardDisplayedFrame(WB_POOL_S *pstWinBP);
 HI_DRV_VIDEO_FRAME_S *WinBuf_GetDisplayedFrame(WB_POOL_S *pstWinBP);
@@ -133,6 +137,10 @@ HI_DRV_VIDEO_FRAME_S * WinBuf_GetNewestFrame(WB_POOL_S *pstWinBP, HI_DRV_VIDEO_F
 HI_S32 WinBuf_GetFullBufNum(WB_POOL_S *pstBP, HI_U32 *pu32BufNum);
 HI_VOID WinBuf_DebugAddRls(WB_DEBUG_INFO_S *pstInfo, HI_U32 u32FrameId);
 HI_VOID WinBuf_DebugAddCfg(WB_DEBUG_INFO_S *pstInfo, HI_U32 u32FrameId);
+HI_S32 Win_ReleaseDisplayedFrame_ForDequeue(HI_HANDLE hpstWin, HI_DRV_VIDEO_FRAME_S *pstFrm);
+HI_VOID WinBuf_RetAllMemRefCnts(HI_VOID);
+HI_VOID WinBuf_CheckMemRefCntReset(HI_U32 u32WinIndex, WB_POOL_S *pstWinBP);
+HI_BOOL CheckFrameCanRealRelease(HI_DRV_VIDEO_FRAME_S *pWantReleaseFrame,WB_POOL_S *pstWinBP);
 
 
 
@@ -152,12 +160,12 @@ typedef struct tagWB_STATE_S
 	HI_U32 u32Empty;
 	HI_U32 u32Full;
 	HI_U32 u32FrameIndex;
-    }stNode[WB_BUFFER_DEBUG_FRAME_RECORD_NUMBER];
+    }stNode[DISP_BUF_NODE_MAX_NUMBER];
 
     WB_DEBUG_INFO_S stRecord;
 
-    HI_U32 u32EmptyArray[WB_BUFFER_DEBUG_FRAME_RECORD_NUMBER];
-    HI_U32 u32FullArray[WB_BUFFER_DEBUG_FRAME_RECORD_NUMBER];
+    HI_U32 u32EmptyArray[DISP_BUF_NODE_MAX_NUMBER];
+    HI_U32 u32FullArray[DISP_BUF_NODE_MAX_NUMBER];
 
     HI_DRV_VIDEO_FRAME_S stCurrentFrame;
 }WB_STATE_S;

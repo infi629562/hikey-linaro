@@ -29,6 +29,15 @@ History	      :
 #include "drv_sync.h"
 #endif
 
+typedef enum hiDRV_STILL_FRAME_TYPE_E
+{
+    HI_DRV_FRAME_NORMAL = 0,
+    HI_DRV_FRAME_VDP_ALLOCATE_STILL,
+    HI_DRV_FRAME_SWITCH_PROGRAM_STILL,
+    HI_DRV_FRAME_BUTT
+} HI_DRV_STILL_FRAME_TYPE_E;
+
+
 /******************************************************************************
     local function and macro
 ******************************************************************************/

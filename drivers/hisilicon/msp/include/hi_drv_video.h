@@ -587,7 +587,7 @@ typedef struct hiDRV_VIDEO_FRAME_S
     HI_U32			u32Priv[DEF_HI_DRV_FRAME_INFO_SIZE];
 
     HI_BOOL			bIsFirstIFrame;
-    HI_BOOL			bStillFrame;
+    HI_U32                      u32StillFrame;
 
     HI_BOOL			bSecure;
 

@@ -18,8 +18,498 @@ History	      :
 #include "drv_disp_bufcore.h"
 #include "drv_disp_buffer.h"
 #include "drv_window.h"
+#include "drv_win_priv.h"
 
 #include "drv_win_hdr.h"
+#include<linux/ion.h>
+
+#define  MMZ_REF_COUNT_MAX  782
+#define  TMP_MMZ_BUFFER_NUM 32
+
+#if defined(HI_NVR_SUPPORT)
+#define  OPEN_REFCNT 0
+#else
+#define  OPEN_REFCNT 1
+#endif
+typedef enum tagVDP_MEM_SOURCE_E
+{
+    VDP_MEM_SOURCE_SMMU = 0,
+    VDP_MEM_SOURCE_ION,
+    VDP_MEM_SOURCE_ILLEGAL,
+    VDP_MEM_SOURCE_BUTT
+}VDP_MEM_SOURCE_E;
+
+typedef struct MemBufRef
+{
+    spinlock_t NodeSpinLock;
+    DISP_MMZ_BUF_S  aMMZMemBufForReferenceOpt[MMZ_REF_COUNT_MAX];
+    volatile HI_U32  u32MemBufWrPtr;
+    volatile HI_U32  u32MemBufRdPtr;
+} MemBufRef_S;
+
+HI_VOID WinBuf_DebugAddIncreaseMemRefCnt(WB_DEBUG_INFO_S *pstInfo);
+HI_VOID WinBuf_DebugAddDecreaseMemRefCnt(WB_DEBUG_INFO_S *pstInfo);
+
+MemBufRef_S g_stMemBufRef =
+{
+    .NodeSpinLock = __SPIN_LOCK_UNLOCKED(g_stMemBufRef.NodeSpinLock),
+    .aMMZMemBufForReferenceOpt = {{0, 0, 0, 0, 0}},
+    .u32MemBufWrPtr = 0,
+    .u32MemBufRdPtr = 0,
+};
+
+#if OPEN_REFCNT
+static MemBufRef_S *GetMemBufRef(HI_VOID)
+{
+    return &g_stMemBufRef;
+}
+#endif
+
+HI_VOID ConvertRefSourceType(HI_S32 s32Source, VDP_MEM_SOURCE_E * penMemSource)
+{
+    if (0 == s32Source)
+    {
+        *penMemSource = VDP_MEM_SOURCE_SMMU;
+    }
+    else if (1 == s32Source)
+    {
+        *penMemSource = VDP_MEM_SOURCE_ION;
+    }
+    else
+    {
+        *penMemSource = VDP_MEM_SOURCE_ILLEGAL;
+    }
+    return;
+}
+static HI_S32 IncreaseFrameMemRefcnt(HI_U32  u32StartPhyAddr,
+                                     HI_U32  u32Size,
+                                     HI_BOOL bSecure)
+{
+#if OPEN_REFCNT
+    HI_S32 s32Ret = HI_FAILURE;
+
+#ifdef  HI_SMMU_SUPPORT
+    SMMU_BUFFER_S stSMMUBuf = {0};
+    VDP_MEM_SOURCE_E enMemSource = VDP_MEM_SOURCE_BUTT;
+    HI_S32 s32Source = VDP_MEM_SOURCE_BUTT;
+#else
+    MMZ_BUFFER_S stMMZBuf = {0};
+#endif
+
+    if (HI_TRUE == bSecure)
+    {
+#ifdef  HI_SMMU_SUPPORT
+        stSMMUBuf.pu8StartVirAddr  =  0;
+        stSMMUBuf.u32StartSmmuAddr =  u32StartPhyAddr;
+        stSMMUBuf.u32Size          =  u32Size;
+
+        if (HI_SUCCESS != HI_DRV_SEC_SMMU_Query_Buffer_Source(u32StartPhyAddr, &s32Source))
+        {
+            WIN_FATAL("query  buf source failed,addr:%x, size:%d\n", u32StartPhyAddr, u32Size);
+            return HI_FAILURE;
+        }
+
+
+        ConvertRefSourceType(s32Source, &enMemSource);
+
+        if (VDP_MEM_SOURCE_SMMU == enMemSource)
+        {
+            s32Ret = HI_DRV_SECSMMU_Buffer_Get(&stSMMUBuf);
+            if (HI_SUCCESS != s32Ret)
+            {
+                 WIN_FATAL("HI_DRV_SECSMMU_Buffer_Get failed ,secure addr=0x%x,s32Ret = %d\n", u32StartPhyAddr, s32Ret);
+            }
+        }
+        else if (VDP_MEM_SOURCE_ION == enMemSource)
+        {
+            s32Ret = ion_get(u32StartPhyAddr);
+            if (HI_SUCCESS != s32Ret)
+            {
+                 WIN_FATAL("ion_get failed , secure addr=0x%x, s32Ret = %d\n", u32StartPhyAddr,s32Ret);
+            }
+        }
+        else
+        {
+            WIN_FATAL("query  buf source Type %d,can't support ref cnt\n", enMemSource);
+            return HI_FAILURE;
+        }
+#else
+        stMMZBuf.pu8StartVirAddr = 0;
+        stMMZBuf.u32StartPhyAddr = u32StartPhyAddr;
+        stMMZBuf.u32Size         = u32Size;
+
+        s32Ret = HI_DRV_SECMMZ_Buffer_Get(&stMMZBuf);
+#endif
+    }
+    else
+    {
+#ifdef  HI_SMMU_SUPPORT
+        stSMMUBuf.pu8StartVirAddr  =  0;
+        stSMMUBuf.u32StartSmmuAddr =  u32StartPhyAddr;
+        stSMMUBuf.u32Size          =  u32Size;
+        if (HI_SUCCESS != HI_DRV_SMMU_Query_Buffer_Source(&stSMMUBuf, &s32Source))
+        {
+            WIN_FATAL("query  buf source failed,addr:%x, size:%d\n", u32StartPhyAddr, u32Size);
+            return HI_FAILURE;
+        }
+        ConvertRefSourceType(s32Source, &enMemSource);
+        if (VDP_MEM_SOURCE_SMMU == enMemSource)
+        {
+        s32Ret = HI_DRV_SMMU_Buffer_Get(&stSMMUBuf);
+        }
+        else if (VDP_MEM_SOURCE_ION == enMemSource)
+        {
+            s32Ret = ion_get(u32StartPhyAddr);
+        }
+        else
+        {
+            WIN_FATAL("query  buf source Type %d,can't support ref cnt\n", enMemSource);
+            return HI_FAILURE;
+        }
+#else
+        stMMZBuf.pu8StartVirAddr = 0;
+        stMMZBuf.u32StartPhyAddr = u32StartPhyAddr;
+        stMMZBuf.u32Size         = u32Size;
+
+        s32Ret = HI_DRV_MMZ_Buffer_Get(&stMMZBuf);
+#endif
+    }
+
+    return s32Ret;
+#else
+    return HI_SUCCESS;
+#endif
+}
+
+static HI_S32 DecreaseFrameMemRefcnt(HI_U32  u32StartPhyAddr,
+                                     HI_U32  u32Size,
+                                     HI_BOOL bSecure)
+{
+#if  OPEN_REFCNT
+    HI_SIZE_T irqflag = 0;
+    HI_U32  u32Wptr = 0, u32Rdtr = 0;
+    HI_S32 s32Ret = HI_FAILURE;
+    MemBufRef_S *pMemBufRef = GetMemBufRef();
+
+    spin_lock_irqsave(&pMemBufRef->NodeSpinLock, irqflag);
+
+    u32Wptr = pMemBufRef->u32MemBufWrPtr;
+    u32Rdtr = pMemBufRef->u32MemBufRdPtr;
+
+    if (((u32Wptr  + 1) % MMZ_REF_COUNT_MAX) == u32Rdtr)
+    {
+        WIN_FATAL("The mem ref buf is full,wr:%d, rd:%d\n", u32Wptr, u32Rdtr);
+        s32Ret = HI_ERR_VO_BUFQUE_FULL;
+        goto __DECREASE_CNT_EXIT;
+    }
+
+    pMemBufRef->aMMZMemBufForReferenceOpt[u32Wptr].pu8StartVirAddr = 0;
+    pMemBufRef->aMMZMemBufForReferenceOpt[u32Wptr].u32StartPhyAddr = u32StartPhyAddr;
+    pMemBufRef->aMMZMemBufForReferenceOpt[u32Wptr].u32Size = u32Size;
+    pMemBufRef->aMMZMemBufForReferenceOpt[u32Wptr].bSecure = bSecure;
+
+#ifdef  HI_SMMU_SUPPORT
+    pMemBufRef->aMMZMemBufForReferenceOpt[u32Wptr].bSmmu   = HI_TRUE;
+#else
+    pMemBufRef->aMMZMemBufForReferenceOpt[u32Wptr].bSmmu   = HI_FALSE;
+#endif
+
+    pMemBufRef->u32MemBufWrPtr = (u32Wptr  + 1) % MMZ_REF_COUNT_MAX;
+    s32Ret = HI_SUCCESS;
+
+__DECREASE_CNT_EXIT:
+
+    spin_unlock_irqrestore(&pMemBufRef->NodeSpinLock, irqflag);
+    return s32Ret;
+#else
+    return HI_SUCCESS;
+#endif
+
+}
+
+HI_S32  IncreaseFrameCntAccordingToFrame(HI_DRV_VIDEO_FRAME_S *pstFrame,
+        WB_DEBUG_INFO_S *pstInfo)
+{
+    HI_U32 u32PhyAddr_Y               = 0;
+    HI_U32 u32PhyAddr_Y_RightEye      = 0;
+    HI_S32 s32Ret = HI_FAILURE;
+
+    if (pstFrame->ePixFormat >= HI_DRV_PIX_BUTT)
+    {
+        WIN_ERROR("parameter out of range.\n");
+        return HI_ERR_VO_FRAME_INFO_ERROR;
+    }
+
+    if (((pstFrame->ePixFormat >= HI_DRV_PIX_FMT_NV08_CMP)
+         && (pstFrame->ePixFormat <= HI_DRV_PIX_FMT_NV42_CMP))
+        || (pstFrame->ePixFormat == HI_DRV_PIX_FMT_NV12_TILE_CMP)
+        || (pstFrame->ePixFormat == HI_DRV_PIX_FMT_NV21_TILE_CMP))
+    {
+        u32PhyAddr_Y            = pstFrame->stBufAddr[0].u32PhyAddr_YHead;
+        u32PhyAddr_Y_RightEye   = pstFrame->stBufAddr[1].u32PhyAddr_YHead;
+    }
+    else
+    {
+        u32PhyAddr_Y            = pstFrame->stBufAddr[0].u32PhyAddr_Y;
+        u32PhyAddr_Y_RightEye   = pstFrame->stBufAddr[1].u32PhyAddr_Y;
+    }
+
+    s32Ret = IncreaseFrameMemRefcnt(u32PhyAddr_Y, 0, pstFrame->bSecure);
+    if (HI_SUCCESS == s32Ret)
+    {
+        WinBuf_DebugAddIncreaseMemRefCnt(pstInfo);
+    }
+    else
+    {
+        WIN_ERROR("IncreaseFrameMemRefcnt fai,maybe addr is invalib.\n");
+        return HI_ERR_VO_FRAME_INFO_ERROR;
+    }
+
+    if (HI_DRV_FT_NOT_STEREO != pstFrame->eFrmType)
+    {
+        s32Ret = IncreaseFrameMemRefcnt(u32PhyAddr_Y_RightEye, 0, pstFrame->bSecure);
+        if (HI_SUCCESS == s32Ret)
+        {
+            WinBuf_DebugAddIncreaseMemRefCnt(pstInfo);
+        }
+        else
+        {
+            WIN_ERROR("IncreaseFrameMemRefcnt fai,maybe addr is invalib.\n");
+            return HI_ERR_VO_FRAME_INFO_ERROR;
+    }
+    }
+
+
+    return HI_SUCCESS;
+}
+
+static HI_VOID  GetFrameAddr(HI_DRV_VIDEO_FRAME_S *pstFrame,
+                             HI_U32 *pu32PhyAddr_Y,
+                             HI_U32 *pu32PhyAddr_Y_RightEye)
+{
+
+    if (((pstFrame->ePixFormat >= HI_DRV_PIX_FMT_NV08_CMP)
+         && (pstFrame->ePixFormat <= HI_DRV_PIX_FMT_NV42_CMP))
+        || (pstFrame->ePixFormat == HI_DRV_PIX_FMT_NV12_TILE_CMP)
+        || (pstFrame->ePixFormat == HI_DRV_PIX_FMT_NV21_TILE_CMP))
+    {
+        *pu32PhyAddr_Y            = pstFrame->stBufAddr[0].u32PhyAddr_YHead;
+        *pu32PhyAddr_Y_RightEye   = pstFrame->stBufAddr[1].u32PhyAddr_YHead;
+    }
+    else
+    {
+        *pu32PhyAddr_Y            = pstFrame->stBufAddr[0].u32PhyAddr_Y;
+        *pu32PhyAddr_Y_RightEye   = pstFrame->stBufAddr[1].u32PhyAddr_Y;
+    }
+
+    return;
+}
+
+static HI_VOID DecreaseFrameRefcnt(HI_DRV_VIDEO_FRAME_S *pstFrame,
+                                   WB_DEBUG_INFO_S *pstInfo)
+{
+    HI_U32 u32PhyAddr_Y               = 0;
+    HI_U32 u32PhyAddr_Y_RightEye      = 0;
+    HI_S32 s32Ret = HI_FAILURE;
+    HI_DRV_VIDEO_PRIVATE_S *pstPriv = HI_NULL;
+    DISP_BUF_NODE_S *pstDispBufNode = HI_NULL;
+    HI_DRV_VIDEO_FRAME_S  *pstELFrm = HI_NULL;
+
+    pstPriv = (HI_DRV_VIDEO_PRIVATE_S *) & (pstFrame->u32Priv[0]);
+    if (/*(HI_TRUE == pstPriv->bForFenceUse)
+        || */(HI_DRV_FRAME_VDP_ALLOCATE_STILL == pstFrame->u32StillFrame))
+    {
+        return;
+    }
+
+    (HI_VOID)GetFrameAddr(pstFrame, &u32PhyAddr_Y, &u32PhyAddr_Y_RightEye);
+
+    s32Ret = DecreaseFrameMemRefcnt(u32PhyAddr_Y, 0, pstFrame->bSecure);
+    if (HI_SUCCESS == s32Ret)
+    {
+        /*first  add the release  statistics value*/
+        WinBuf_DebugAddDecreaseMemRefCnt(pstInfo);
+    }
+
+    /*second,   release  3d right eye or el frame.*/
+    if (HI_DRV_FT_NOT_STEREO != pstFrame->eFrmType)
+    {
+        s32Ret = DecreaseFrameMemRefcnt(u32PhyAddr_Y_RightEye, 0, pstFrame->bSecure);
+        if (HI_SUCCESS == s32Ret)
+        {
+            WinBuf_DebugAddDecreaseMemRefCnt(pstInfo);
+        }
+    }
+    else
+    {
+        /*judge whether el frame exist, if exist then release.*/
+        pstDispBufNode = container_of((HI_U32 *)pstFrame, DISP_BUF_NODE_S, u32Data[0]);
+        if (pstDispBufNode->bValidData2)
+        {
+            pstELFrm = (HI_DRV_VIDEO_FRAME_S *)pstDispBufNode->u32Data2;
+
+            GetFrameAddr(pstELFrm, &u32PhyAddr_Y, &u32PhyAddr_Y_RightEye);
+            s32Ret = DecreaseFrameMemRefcnt(u32PhyAddr_Y, 0, pstFrame->bSecure);
+            if (HI_SUCCESS == s32Ret)
+            {
+                WinBuf_DebugAddDecreaseMemRefCnt(pstInfo);
+            }
+        }
+    }
+
+
+
+    return;
+}
+
+
+#if OPEN_REFCNT
+static HI_VOID PutMemBuf(DISP_MMZ_BUF_S *pstTmpBufNode, HI_U32 u32NodeNum)
+{
+    HI_U32 i = 0;
+#ifdef  HI_SMMU_SUPPORT
+    SMMU_BUFFER_S stSMMU_MMZBuf = {0};
+    VDP_MEM_SOURCE_E enMemSource = VDP_MEM_SOURCE_BUTT;
+    HI_S32 s32Source = VDP_MEM_SOURCE_BUTT;
+#else
+    MMZ_BUFFER_S  stSMMU_MMZBuf = {0};
+#endif
+
+    for (i = 0; i < u32NodeNum; i ++)
+    {
+        if (pstTmpBufNode[i].bSecure)
+        {
+#ifdef  HI_SMMU_SUPPORT
+            stSMMU_MMZBuf.pu8StartVirAddr  = pstTmpBufNode[i].pu8StartVirAddr;
+            stSMMU_MMZBuf.u32StartSmmuAddr = pstTmpBufNode[i].u32StartPhyAddr;
+            stSMMU_MMZBuf.u32Size          = pstTmpBufNode[i].u32Size;
+
+            if (HI_SUCCESS != HI_DRV_SEC_SMMU_Query_Buffer_Source(stSMMU_MMZBuf.u32StartSmmuAddr, &s32Source))
+            {
+                WIN_FATAL("query  buf source failed,addr:%x, size:%d\n", stSMMU_MMZBuf.u32StartSmmuAddr, stSMMU_MMZBuf.u32Size);
+                return ;
+            }
+
+            ConvertRefSourceType(s32Source, &enMemSource);
+            if (VDP_MEM_SOURCE_SMMU == enMemSource)
+            {
+                if (HI_SUCCESS != HI_DRV_SECSMMU_Buffer_Put(&stSMMU_MMZBuf))
+                {
+                    WIN_FATAL("HI_DRV_SECSMMU_Buffer_Put failed %x, size %d\n", stSMMU_MMZBuf.u32StartSmmuAddr, stSMMU_MMZBuf.u32Size);
+                }
+            }
+            else if (VDP_MEM_SOURCE_ION == enMemSource)
+            {
+                if (HI_SUCCESS != ion_put(stSMMU_MMZBuf.u32StartSmmuAddr))
+                {
+                    WIN_FATAL("ion_put failed addr %x, size %d\n", stSMMU_MMZBuf.u32StartSmmuAddr, stSMMU_MMZBuf.u32Size);
+                    return;
+                }
+            }
+            else
+            {
+                WIN_FATAL("query  buf source Type %d,can't support ref cnt\n", enMemSource);
+                return;
+            }
+#else
+            stSMMU_MMZBuf.pu8StartVirAddr  = pstTmpBufNode[i].pu8StartVirAddr;
+            stSMMU_MMZBuf.u32StartPhyAddr  = pstTmpBufNode[i].u32StartPhyAddr;
+            stSMMU_MMZBuf.u32Size          = pstTmpBufNode[i].u32Size;
+            HI_DRV_SECMMZ_Buffer_Put(&stSMMU_MMZBuf);
+#endif
+        }
+        else
+        {
+#ifdef  HI_SMMU_SUPPORT
+            stSMMU_MMZBuf.pu8StartVirAddr  = pstTmpBufNode[i].pu8StartVirAddr;
+            stSMMU_MMZBuf.u32StartSmmuAddr = pstTmpBufNode[i].u32StartPhyAddr;
+            stSMMU_MMZBuf.u32Size          = pstTmpBufNode[i].u32Size;
+            if (HI_SUCCESS != HI_DRV_SMMU_Query_Buffer_Source(&stSMMU_MMZBuf, &s32Source))
+            {
+                WIN_FATAL("query  buf source failed,addr:%x, size:%d\n", stSMMU_MMZBuf.u32StartSmmuAddr, stSMMU_MMZBuf.u32Size);
+                return ;
+            }
+            ConvertRefSourceType(s32Source, &enMemSource);
+            if (VDP_MEM_SOURCE_SMMU == enMemSource)
+            {
+            HI_DRV_SMMU_Buffer_Put(&stSMMU_MMZBuf);
+            }
+            else if (VDP_MEM_SOURCE_ION == enMemSource)
+            {
+                if (HI_SUCCESS != ion_put(stSMMU_MMZBuf.u32StartSmmuAddr))
+                {
+                    WIN_FATAL("ion_put failed addr %x, size %d\n", stSMMU_MMZBuf.u32StartSmmuAddr, stSMMU_MMZBuf.u32Size);
+                    return;
+                }
+            }
+            else
+            {
+                WIN_FATAL("query  buf source Type %d,can't support ref cnt\n", enMemSource);
+                return;
+            }
+#else
+            stSMMU_MMZBuf.pu8StartVirAddr  = pstTmpBufNode[i].pu8StartVirAddr;
+            stSMMU_MMZBuf.u32StartPhyAddr  = pstTmpBufNode[i].u32StartPhyAddr;
+            stSMMU_MMZBuf.u32Size          = pstTmpBufNode[i].u32Size;
+            HI_DRV_MMZ_Buffer_Put(&stSMMU_MMZBuf);
+#endif
+        }
+    }
+
+
+    return;
+}
+
+#endif
+
+HI_VOID WinBuf_CheckMemRefCntReset(HI_U32 u32WinIndex, WB_POOL_S *pstWinBP)
+{
+    if (pstWinBP->pstDebugInfo->u32IncreaseMemRefCnt !=
+        pstWinBP->pstDebugInfo->u32DecreaseMemRefCnt)
+    {
+        WIN_FATAL("Memleak, Windex:%x, GetRef:%d, PutRef:%d!\n", u32WinIndex,
+                  pstWinBP->pstDebugInfo->u32IncreaseMemRefCnt,
+                  pstWinBP->pstDebugInfo->u32DecreaseMemRefCnt);
+    }
+
+    return;
+}
+
+HI_VOID WinBuf_RetAllMemRefCnts(HI_VOID)
+{
+#if  OPEN_REFCNT
+    HI_SIZE_T irqflag = 0;
+    HI_U32  u32MemBufWrPtr = 0, u32MemBufRdPtr = 0, i = 0;
+    MemBufRef_S *pMemBufRef = GetMemBufRef();
+    DISP_MMZ_BUF_S stTmpBufNode[TMP_MMZ_BUFFER_NUM] = {{0, 0, 0, 0, 0}};
+
+    spin_lock_irqsave(&pMemBufRef->NodeSpinLock, irqflag);
+
+    for (i = 0; i < TMP_MMZ_BUFFER_NUM; i ++ )
+    {
+        u32MemBufWrPtr = pMemBufRef->u32MemBufWrPtr;
+        u32MemBufRdPtr = pMemBufRef->u32MemBufRdPtr;
+
+        if (u32MemBufRdPtr == u32MemBufWrPtr)
+        {
+            break;
+        }
+
+        stTmpBufNode[i].u32StartPhyAddr = pMemBufRef->aMMZMemBufForReferenceOpt[u32MemBufRdPtr].u32StartPhyAddr;
+        stTmpBufNode[i].pu8StartVirAddr   = pMemBufRef->aMMZMemBufForReferenceOpt[u32MemBufRdPtr].pu8StartVirAddr;
+        stTmpBufNode[i].u32Size       = pMemBufRef->aMMZMemBufForReferenceOpt[u32MemBufRdPtr].u32Size;
+        stTmpBufNode[i].bSecure       = pMemBufRef->aMMZMemBufForReferenceOpt[u32MemBufRdPtr].bSecure;
+
+        pMemBufRef->u32MemBufRdPtr = (pMemBufRef->u32MemBufRdPtr + 1) % MMZ_REF_COUNT_MAX;
+    }
+
+    spin_unlock_irqrestore(&pMemBufRef->NodeSpinLock, irqflag);
+
+    (HI_VOID) PutMemBuf(stTmpBufNode, i);
+#endif
+
+    return;
+}
 
 WB_DEBUG_INFO_S * WinBuf_DebugCreate(HI_U32 recordnum)
 {
@@ -95,6 +585,24 @@ HI_VOID WinBuf_DebugAddDisacard(WB_DEBUG_INFO_S *pstInfo)
     pstInfo->u32Disacard++;
 }
 
+HI_VOID WinBuf_DebugAddIncreaseMemRefCnt(WB_DEBUG_INFO_S *pstInfo)
+{
+    pstInfo->u32IncreaseMemRefCnt++;
+}
+
+HI_VOID WinBuf_DebugAddDecreaseMemRefCnt(WB_DEBUG_INFO_S *pstInfo)
+{
+    pstInfo->u32DecreaseMemRefCnt++;
+}
+
+static HI_S32 WinBuf_AddEmptyNode(WB_POOL_S *pstWinBP,
+                                  HI_DRV_VIDEO_FRAME_S *pstDispFrame,
+                                  DISP_BUF_NODE_S *pstNodeEmpty)
+{
+    (HI_VOID)DecreaseFrameRefcnt(pstDispFrame, pstWinBP->pstDebugInfo);
+    return DispBuf_AddEmptyNode(&pstWinBP->stBuffer, pstNodeEmpty);
+}
+
 HI_S32 WinBuf_Create(HI_U32 u32BufNum, HI_U32 u32MemType, WIN_BUF_ALLOC_PARA_S *pstAlloc, WB_POOL_S *pstWinBP)
 {
     HI_S32 nRet = HI_SUCCESS;
@@ -144,7 +652,7 @@ HI_S32 WinBuf_Create(HI_U32 u32BufNum, HI_U32 u32MemType, WIN_BUF_ALLOC_PARA_S *
     pstWinBP->pstDisplay = HI_NULL;
     pstWinBP->pstConfig	 = HI_NULL;
 
-    pstWinBP->pstDebugInfo = WinBuf_DebugCreate(WB_BUFFER_DEBUG_FRAME_RECORD_NUMBER);
+    pstWinBP->pstDebugInfo = WinBuf_DebugCreate(DISP_BUF_NODE_MAX_NUMBER);
     if (!pstWinBP->pstDebugInfo)
     {
 	goto __ERR_EXIT_;
@@ -210,7 +718,18 @@ HI_S32 WinBuf_SetSource(WB_POOL_S *pstWinBP, WB_SOURCE_INFO_S *pstSrc)
     WIN_CHECK_NULL_RETURN(pstWinBP);
     WIN_CHECK_NULL_RETURN(pstSrc);
 
-    pstWinBP->stSrcInfo = *pstSrc;
+    pstWinBP->stSrcInfo.hSrc = pstSrc->hSrc;
+    pstWinBP->stSrcInfo.hSecondSrc = pstSrc->hSecondSrc;
+
+    if (HI_NULL != pstSrc->pfAcqFrame)
+    {
+        pstWinBP->stSrcInfo.pfAcqFrame = pstSrc->pfAcqFrame;
+    }
+
+    if (HI_NULL != pstSrc->pfRlsFrame)
+    {
+        pstWinBP->stSrcInfo.pfRlsFrame = pstSrc->pfRlsFrame;
+    }
 
     return HI_SUCCESS;
 }
@@ -220,6 +739,7 @@ HI_S32 WinBuf_PutNewFrame(WB_POOL_S *pstWinBP, HI_DRV_VIDEO_FRAME_S *pstFrame, H
 {
     HI_S32 nRet;
     DISP_BUF_NODE_S *pstNode;
+    HI_DRV_VIDEO_PRIVATE_S *pstPriv = HI_NULL;
 
     WIN_CHECK_NULL_RETURN(pstWinBP);
     WIN_CHECK_NULL_RETURN(pstFrame);
@@ -228,24 +748,36 @@ HI_S32 WinBuf_PutNewFrame(WB_POOL_S *pstWinBP, HI_DRV_VIDEO_FRAME_S *pstFrame, H
     nRet = DispBuf_GetEmptyNode(&pstWinBP->stBuffer, &pstNode);
     if (nRet != HI_SUCCESS)
     {
-	return HI_FAILURE;
+        return nRet;
     }
 
-     /*set a barrier bettween DispBuf_GetEmptyNode and DispBuf_DelEmptyNode,
-     * del oper will change the state of node in empty list, but get oper
-     * will check it. so a barrier is neccessary. see DTS2014080502661.
-     */
+    /*set a barrier bettween DispBuf_GetEmptyNode and DispBuf_DelEmptyNode,
+    * del oper will change the state of node in empty list, but get oper
+    * will check it. so a barrier is neccessary.
+    */
     barrier();
 
     nRet = DispBuf_DelEmptyNode(&pstWinBP->stBuffer, pstNode);
     if (nRet != HI_SUCCESS)
     {
-	WIN_ERROR("DispBuf_DelEmptyNode failed, ID=0x%x\n", pstNode->u32ID);
-	return HI_FAILURE;
+        WIN_ERROR("DispBuf_DelEmptyNode failed, ID=0x%x\n", pstNode->u32ID);
+        return nRet;
     }
 
     memcpy(pstNode->u32Data, pstFrame, sizeof(HI_DRV_VIDEO_FRAME_S));
     pstNode->u32PlayCnt = u32PlayCnt;
+
+    pstPriv = (HI_DRV_VIDEO_PRIVATE_S *) & (pstFrame->u32Priv[0]);
+
+    if (/*(HI_TRUE != pstPriv->bForFenceUse)
+        && */(HI_DRV_FRAME_VDP_ALLOCATE_STILL != pstFrame->u32StillFrame))
+    {
+        nRet = IncreaseFrameCntAccordingToFrame(pstFrame, pstWinBP->pstDebugInfo);
+        if (nRet)
+        {
+            return nRet;
+        }
+    }
 
     nRet = DispBuf_AddFullNode(&pstWinBP->stBuffer, pstNode);
     DISP_ASSERT(nRet == HI_SUCCESS);
@@ -389,7 +921,22 @@ HI_S32 WinBuf_RlsFrameWithHandle(WB_POOL_S * pstWinBP,HI_DRV_VIDEO_FRAME_S *pstF
     return Ret;
 }
 
-// release frame that has been displayed and set configed frame as displayed frame.
+
+HI_BOOL CheckFrameCanRealRelease(HI_DRV_VIDEO_FRAME_S *pWantReleaseFrame,
+                                 WB_POOL_S *pstWinBP)
+{
+    if ((pWantReleaseFrame->stBufAddr[0].u32PhyAddr_Y != pstWinBP->u32QuickRlsFrameAddr)
+        || (pWantReleaseFrame->u32FrameIndex != pstWinBP->u32QuickRlsFrameIndex))
+    {
+        return HI_TRUE;
+    }
+    else
+    {
+        return HI_FALSE;
+    }
+}
+
+//release frame that has been displayed and set configed frame as displayed frame.
 HI_S32 WinBuf_RlsAndUpdateUsingFrame(WB_POOL_S *pstWinBP)
 {
     HI_DRV_VIDEO_FRAME_S *pstDispFrame, *pstCfgFrame;
@@ -399,81 +946,67 @@ HI_S32 WinBuf_RlsAndUpdateUsingFrame(WB_POOL_S *pstWinBP)
 
     if (pstWinBP->pstDisplay != HI_NULL)
     {
-	pstDispFrame = (HI_DRV_VIDEO_FRAME_S *)pstWinBP->pstDisplay->u32Data;
+        pstDispFrame = (HI_DRV_VIDEO_FRAME_S *)pstWinBP->pstDisplay->u32Data;
 
-	/*1) display not null, and config == display,this
-		means repeate-playing  controlled by vdp itself.
-		  2) not the same with repeate-playing controlled by avplay
-		    : pstDisplay != pstconfig, but the ptr points the same frame.
-	 */
-	if (pstWinBP->pstDisplay == pstWinBP->pstConfig)
-	{
-	    pstWinBP->pstConfig	 = HI_NULL;
-	}
-	else if (pstWinBP->pstConfig != HI_NULL)
-	{
-	    /*this branch means normal playing:
-	      we get new config node, and if not repeated by avplay ,we
-	      will release the display node and	 move forward.*/
-	    pstCfgFrame = (HI_DRV_VIDEO_FRAME_S *)pstWinBP->pstConfig->u32Data;
+        /*1) display not null, and config == display,this
+            means repeate-playing  controlled by vdp itself.
+              2) not the same with repeate-playing controlled by avplay
+                : pstDisplay != pstconfig, but the ptr points the same frame.
+              */
+        if (pstWinBP->pstDisplay == pstWinBP->pstConfig)
+        {
+            pstWinBP->pstConfig  = HI_NULL;
+        }
+        else if (pstWinBP->pstConfig != HI_NULL)
+        {
+            /*this branch means normal playing:
+                          we get new config node, and if not repeated by avplay ,we
+                         will release the display node and  move forward.*/
+            pstCfgFrame = (HI_DRV_VIDEO_FRAME_S *)pstWinBP->pstConfig->u32Data;
 
-	    /*if display and config not points the same frame, we will release display node.*/
-	    if ((pstDispFrame->bStillFrame) && ( pstDispFrame->stBufAddr[0].u32PhyAddr_Y
-		    != pstCfgFrame->stBufAddr[0].u32PhyAddr_Y))
-	    {
-		WIN_DestroyStillFrame(pstDispFrame);
-		WinBuf_DebugAddRls(pstWinBP->pstDebugInfo, pstDispFrame->u32FrameIndex);
-	    }
-	    else if (	pstWinBP->stSrcInfo.pfRlsFrame
-		&& (   pstDispFrame->stBufAddr[0].u32PhyAddr_Y
-		    != pstCfgFrame->stBufAddr[0].u32PhyAddr_Y)
-		)
-	    {
-		nRet = WinBuf_RlsFrameWithHandle(pstWinBP,pstDispFrame);
-		if(HI_SUCCESS != nRet)
-		{
-		    return nRet;
-		}
-		WinBuf_DebugAddRls(pstWinBP->pstDebugInfo, pstDispFrame->u32FrameIndex);
-	    }
+            /*if display and config not points the same frame, we will release display node.*/
+            if ( (pstDispFrame->stBufAddr[0].u32PhyAddr_Y
+                  != pstCfgFrame->stBufAddr[0].u32PhyAddr_Y))
+            {
+                if (HI_TRUE == CheckFrameCanRealRelease(pstDispFrame, pstWinBP))
+                {
+                    (HI_VOID)WinBuf_RlsFrameWithHandle(pstWinBP, pstDispFrame);
+                    pstWinBP->u32QuickRlsFrameIndex = pstDispFrame->u32FrameIndex;
+                    pstWinBP->u32QuickRlsFrameAddr = pstDispFrame->stBufAddr[0].u32PhyAddr_Y;
+                }
+            }
 
-	    /* release disp buffer*/
-	    nRet = DispBuf_AddEmptyNode(&pstWinBP->stBuffer, pstWinBP->pstDisplay);
-	    DISP_ASSERT(nRet == HI_SUCCESS);
+            /* release disp buffer*/
+            nRet = WinBuf_AddEmptyNode(pstWinBP, pstDispFrame, pstWinBP->pstDisplay);
+            DISP_ASSERT(nRet == HI_SUCCESS);
 
-	    /*move forward.*/
-	    pstWinBP->pstDisplay = pstWinBP->pstConfig;
-	    pstWinBP->pstConfig	 = HI_NULL;
-	}
-	else
-	{
-	    /*this branch means: in last intr,we undergo a reset, and in black frame mode. so we did
-	      not receive new frame from avplay, in this intr, we should release it.
-	     */
-	    if (pstDispFrame->bStillFrame)
-	    {
-		WIN_DestroyStillFrame(pstDispFrame);
-	    }
-	    else if ( pstWinBP->stSrcInfo.pfRlsFrame )
-	    {
-		nRet = WinBuf_RlsFrameWithHandle(pstWinBP,pstDispFrame);
-		if(HI_SUCCESS != nRet)
-		{
-		    return nRet;
-		}
-	    }
+            /*move forward.*/
+            pstWinBP->pstDisplay = pstWinBP->pstConfig;
+            pstWinBP->pstConfig  = HI_NULL;
+        }
+        else
+        {
+            /*this branch means: in last intr,we undergo a reset, and in black frame mode. so we did
+                         not receive new frame from avplay, in this intr, we should release it.
+                      */
+            if (HI_TRUE == CheckFrameCanRealRelease(pstDispFrame, pstWinBP))
+            {
+                pstWinBP->u32QuickRlsFrameIndex = pstDispFrame->u32FrameIndex;
+                pstWinBP->u32QuickRlsFrameAddr = pstDispFrame->stBufAddr[0].u32PhyAddr_Y;
+                (HI_VOID)WinBuf_RlsFrameWithHandle(pstWinBP, pstDispFrame);
+            }
 
-	    nRet = DispBuf_AddEmptyNode(&pstWinBP->stBuffer, pstWinBP->pstDisplay);
-	    DISP_ASSERT(nRet == HI_SUCCESS);
-	    pstWinBP->pstDisplay = HI_NULL;
-	}
+            nRet = WinBuf_AddEmptyNode(pstWinBP, pstDispFrame, pstWinBP->pstDisplay);
+            DISP_ASSERT(nRet == HI_SUCCESS);
+            pstWinBP->pstDisplay = HI_NULL;
+        }
 
     }
     else if (pstWinBP->pstConfig != HI_NULL)
     {
-	pstWinBP->pstDisplay = pstWinBP->pstConfig;
+        pstWinBP->pstDisplay = pstWinBP->pstConfig;
 
-	pstWinBP->pstConfig = HI_NULL;
+        pstWinBP->pstConfig = HI_NULL;
     }
 
     return HI_SUCCESS;
@@ -483,6 +1016,8 @@ HI_S32 WinBuf_RepeatDisplayedFrame(WB_POOL_S *pstWinBP)
 {
     WIN_CHECK_NULL_RETURN_NULL(pstWinBP);
 
+    DISP_ASSERT(HI_NULL == pstWinBP->pstConfig);
+
     pstWinBP->pstConfig = pstWinBP->pstDisplay;
 
     return HI_SUCCESS;
@@ -490,37 +1025,28 @@ HI_S32 WinBuf_RepeatDisplayedFrame(WB_POOL_S *pstWinBP)
 
 HI_S32 WinBuf_DiscardDisplayedFrame(WB_POOL_S *pstWinBP)
 {
-    HI_S32 nRet;
     HI_BOOL bInFullList = HI_FALSE;
-    HI_DRV_VIDEO_FRAME_S *pstDispFrame;
+    HI_DRV_VIDEO_FRAME_S *pstDispFrame = HI_NULL;
     WIN_CHECK_NULL_RETURN_NULL(pstWinBP);
 
     if (pstWinBP->pstConfig != HI_NULL)
     {
-	WIN_ERROR("DiscardDisplayedFrame Error.\n");
-	return HI_FAILURE;
+        WIN_ERROR("DiscardDisplayedFrame Error.\n");
+        return HI_FAILURE;
     }
 
     if (pstWinBP->pstDisplay != HI_NULL)
     {
-	bInFullList = DispBuf_FullListHasSameNode(&(pstWinBP->stBuffer),
-						pstWinBP->pstDisplay);
-	if(!bInFullList)
-	{
-	    if (pstWinBP->stSrcInfo.pfRlsFrame)
-	    {
-		pstDispFrame = (HI_DRV_VIDEO_FRAME_S *)pstWinBP->pstDisplay->u32Data;
-		nRet = WinBuf_RlsFrameWithHandle(pstWinBP,pstDispFrame);
-		if(HI_SUCCESS != nRet)
-		{
-		    return nRet;
-		}
-		WinBuf_DebugAddRls(pstWinBP->pstDebugInfo, pstDispFrame->u32FrameIndex);
+        pstDispFrame = (HI_DRV_VIDEO_FRAME_S *)pstWinBP->pstDisplay->u32Data;
 
-		(HI_VOID)DispBuf_AddEmptyNode(&pstWinBP->stBuffer, pstWinBP->pstDisplay);
-	    }
-	}
+        bInFullList = DispBuf_FullListHasSameNode(&(pstWinBP->stBuffer),
+                      pstWinBP->pstDisplay);
+        if (!bInFullList)
+        {
+            (HI_VOID)WinBuf_RlsFrameWithHandle(pstWinBP, pstDispFrame);
+        }
 
+        (HI_VOID)WinBuf_AddEmptyNode(pstWinBP, pstDispFrame, pstWinBP->pstDisplay);
     }
 
     pstWinBP->pstConfig = HI_NULL;
@@ -554,25 +1080,17 @@ HI_DRV_VIDEO_FRAME_S *WinBuf_GetConfigedFrame(WB_POOL_S *pstWinBP)
 
 HI_S32 WinBuf_ForceReleaseFrame(WB_POOL_S *pstWinBP, HI_DRV_VIDEO_FRAME_S *pstFrame)
 {
-    HI_S32 nRet;
     WIN_CHECK_NULL_RETURN(pstWinBP);
 
-    if (pstFrame)
+    if (HI_NULL == pstFrame)
     {
-       if (pstFrame->bStillFrame )
-	{
-	    WIN_DestroyStillFrame(pstFrame);
-	    WinBuf_DebugAddRls(pstWinBP->pstDebugInfo, pstFrame->u32FrameIndex);
-	}
-	else if (pstWinBP->stSrcInfo.pfRlsFrame != HI_NULL)
-	{
-	    nRet = WinBuf_RlsFrameWithHandle(pstWinBP, pstFrame);
-	    if (HI_SUCCESS != nRet)
-	    {
-		return nRet;
-	    }
-	    WinBuf_DebugAddRls(pstWinBP->pstDebugInfo, pstFrame->u32FrameIndex);
-	}
+        return HI_SUCCESS;
+    }
+
+    (HI_VOID)WinBuf_RlsFrameWithHandle(pstWinBP, pstFrame);
+    if (HI_NULL != pstWinBP->pstDisplay)
+    {
+        (HI_VOID)WinBuf_AddEmptyNode(pstWinBP, pstFrame, pstWinBP->pstDisplay);
     }
 
     return HI_SUCCESS;
@@ -590,38 +1108,37 @@ HI_S32 WinBuf_ReleaseOneFrame(WB_POOL_S *pstWinBP, HI_DRV_VIDEO_FRAME_S *pstPreF
 
     if (pstPreFrame)
     {
-	u32UsingAddrY = pstPreFrame->stBufAddr[0].u32PhyAddr_Y;
-	u32UsingIdx = pstPreFrame->u32FrameIndex;
+        u32UsingAddrY = pstPreFrame->stBufAddr[0].u32PhyAddr_Y;
+        u32UsingIdx = pstPreFrame->u32FrameIndex;
     }
     else
     {
-	u32UsingAddrY = 0;
-	u32UsingIdx = 0xffffffff;
+        u32UsingAddrY = 0;
+        u32UsingIdx = 0xffffffff;
     }
 
     nRet = DispBuf_GetFullNode(&pstWinBP->stBuffer, &pstWBNode);
     if (nRet != HI_SUCCESS)
     {
-	return HI_FAILURE;
+        return HI_FAILURE;
     }
 
     nRet = DispBuf_GetNextFullNode(&pstWinBP->stBuffer, &pstWBNextNode);
     if (nRet != HI_SUCCESS)
     {
-	return HI_FAILURE;
+        return HI_FAILURE;
     }
 
     pstCurrFrame = (HI_DRV_VIDEO_FRAME_S *)pstWBNode->u32Data;
     pstNextFrame = (HI_DRV_VIDEO_FRAME_S *)pstWBNextNode->u32Data;
 
-    if ((pstCurrFrame->bStillFrame)&&(pstCurrFrame->stBufAddr[0].u32PhyAddr_Y != u32UsingAddrY)
-	 &&(pstCurrFrame->stBufAddr[0].u32PhyAddr_Y !=
-	    pstNextFrame->stBufAddr[0].u32PhyAddr_Y))
+    if ((pstCurrFrame->stBufAddr[0].u32PhyAddr_Y != u32UsingAddrY)
+        && (pstCurrFrame->stBufAddr[0].u32PhyAddr_Y !=
+            pstNextFrame->stBufAddr[0].u32PhyAddr_Y))
     {
-	WIN_DestroyStillFrame(pstCurrFrame);
-	WinBuf_DebugAddRls(pstWinBP->pstDebugInfo, pstCurrFrame->u32FrameIndex);
+        (HI_VOID)WinBuf_RlsFrameWithHandle(pstWinBP, pstCurrFrame);
     }
-    /*DTS2014031100235
+    /*
        why add Idx != UsingIdx?
        1.vo may release the same addr frame twice
        2.if 1,vpss will check the error ,then don't release the addr
@@ -629,28 +1146,23 @@ HI_S32 WinBuf_ReleaseOneFrame(WB_POOL_S *pstWinBP, HI_DRV_VIDEO_FRAME_S *pstPreF
        4.if 3,vpss is blocked
        to avoid this situation,add add Idx != UsingIdx here.
      */
-    else if (	(pstWinBP->stSrcInfo.pfRlsFrame != HI_NULL)
-	 &&(pstCurrFrame->stBufAddr[0].u32PhyAddr_Y != u32UsingAddrY
-	    || pstCurrFrame->u32FrameIndex != u32UsingIdx)
-	 &&(pstCurrFrame->stBufAddr[0].u32PhyAddr_Y !=
-	    pstNextFrame->stBufAddr[0].u32PhyAddr_Y)
-	)
+    else if ((pstCurrFrame->stBufAddr[0].u32PhyAddr_Y != u32UsingAddrY
+              || pstCurrFrame->u32FrameIndex != u32UsingIdx)
+             && (pstCurrFrame->stBufAddr[0].u32PhyAddr_Y !=
+                 pstNextFrame->stBufAddr[0].u32PhyAddr_Y)
+            )
     {
-	// if the current frame is different with next frame and not using,
-	// release it.
-	nRet = WinBuf_RlsFrameWithHandle(pstWinBP, pstCurrFrame);
-	if (HI_SUCCESS != nRet)
-	{
-	    return nRet;
-	}
-	WinBuf_DebugAddRls(pstWinBP->pstDebugInfo, pstCurrFrame->u32FrameIndex);
+        // if the current frame is different with next frame and not using,
+        // release it.
+        (HI_VOID)WinBuf_RlsFrameWithHandle(pstWinBP, pstCurrFrame);
+
     }
 
     // release node of current frame and add to empty array.
     nRet = DispBuf_DelFullNode(&pstWinBP->stBuffer, pstWBNode);
     DISP_ASSERT(nRet == HI_SUCCESS);
 
-    nRet = DispBuf_AddEmptyNode(&pstWinBP->stBuffer, pstWBNode);
+    nRet = WinBuf_AddEmptyNode(pstWinBP, pstCurrFrame, pstWBNode);
     DISP_ASSERT(nRet == HI_SUCCESS);
 
     WinBuf_DebugAddDisacard(pstWinBP->pstDebugInfo);
@@ -670,44 +1182,42 @@ HI_S32 WinBuf_FlushWaitingFrame(WB_POOL_S *pstWinBP, HI_DRV_VIDEO_FRAME_S *pstPr
 
     if (pstPreFrame)
     {
-	u32UsingAddrY = pstPreFrame->stBufAddr[0].u32PhyAddr_Y;
-	u32UsingIdx = pstPreFrame->u32FrameIndex;
+        u32UsingAddrY = pstPreFrame->stBufAddr[0].u32PhyAddr_Y;
+        u32UsingIdx = pstPreFrame->u32FrameIndex;
     }
     else
     {
-	u32UsingAddrY = 0;
-	u32UsingIdx = 0xffffffff;
+        u32UsingAddrY = 0;
+        u32UsingIdx = 0xffffffff;
     }
 
     nRet = DispBuf_GetFullNode(&pstWinBP->stBuffer, &pstWBNode);
     if (nRet != HI_SUCCESS)
     {
-	return HI_SUCCESS;
+        return HI_SUCCESS;
     }
 
     nRet = DispBuf_GetNextFullNode(&pstWinBP->stBuffer, &pstWBNextNode);
 
-    while(nRet == HI_SUCCESS)
+    while (nRet == HI_SUCCESS)
     {
-	WinBuf_ReleaseOneFrame(pstWinBP, pstPreFrame);
+        WinBuf_ReleaseOneFrame(pstWinBP, pstPreFrame);
 
-	// update position, 'pstWBNextNode' becomes current node, and get new next node
-	pstWBNode = pstWBNextNode;
+        // update position, 'pstWBNextNode' becomes current node, and get new next node
+        pstWBNode = pstWBNextNode;
 
-	nRet = DispBuf_GetNextFullNode(&pstWinBP->stBuffer, &pstWBNextNode);
+        nRet = DispBuf_GetNextFullNode(&pstWinBP->stBuffer, &pstWBNextNode);
     }
 
     // all node is clean exept the last one, now release it.
 
     pstCurrFrame = (HI_DRV_VIDEO_FRAME_S *)pstWBNode->u32Data;
 
-    if ((pstCurrFrame->bStillFrame) && (pstCurrFrame->stBufAddr[0].u32PhyAddr_Y != u32UsingAddrY))
+    if (pstCurrFrame->stBufAddr[0].u32PhyAddr_Y != u32UsingAddrY)
     {
-	WIN_DestroyStillFrame(pstCurrFrame);
-	WinBuf_DebugAddRls(pstWinBP->pstDebugInfo, pstCurrFrame->u32FrameIndex);
+        (HI_VOID)WinBuf_RlsFrameWithHandle(pstWinBP, pstCurrFrame);
     }
     /*
-       DTS2014031100235
        why add Idx != UsingIdx?
        1.vo may release the same addr frame twice
        2.if 1,vpss will check the error ,then don't release the addr
@@ -715,28 +1225,20 @@ HI_S32 WinBuf_FlushWaitingFrame(WB_POOL_S *pstWinBP, HI_DRV_VIDEO_FRAME_S *pstPr
        4.if 3,vpss is blocked
        to avoid this situation,add add Idx != UsingIdx here.
      */
-    else if (	(pstWinBP->stSrcInfo.pfRlsFrame != HI_NULL)
-	 &&(pstCurrFrame->stBufAddr[0].u32PhyAddr_Y != u32UsingAddrY
-	    || pstCurrFrame->u32FrameIndex != u32UsingIdx)
-	)
+    else if (pstCurrFrame->stBufAddr[0].u32PhyAddr_Y != u32UsingAddrY
+             || pstCurrFrame->u32FrameIndex != u32UsingIdx)
     {
-	nRet = WinBuf_RlsFrameWithHandle(pstWinBP, pstCurrFrame);
-	if (HI_SUCCESS != nRet)
-	{
-	    return nRet;
-	}
-	WinBuf_DebugAddRls(pstWinBP->pstDebugInfo, pstCurrFrame->u32FrameIndex);
+        (HI_VOID)WinBuf_RlsFrameWithHandle(pstWinBP, pstCurrFrame);
     }
 
     nRet = DispBuf_DelFullNode(&pstWinBP->stBuffer, pstWBNode);
     DISP_ASSERT(nRet == HI_SUCCESS);
 
-    nRet = DispBuf_AddEmptyNode(&pstWinBP->stBuffer, pstWBNode);
+    nRet = WinBuf_AddEmptyNode(pstWinBP, pstCurrFrame, pstWBNode);
     DISP_ASSERT(nRet == HI_SUCCESS);
 
     return HI_SUCCESS;
 }
-
 
 HI_BOOL WinBuf_FindDstFrame(WB_POOL_S *pstWinBP, HI_DRV_VIDEO_FRAME_S *pstDstFrame)
 {

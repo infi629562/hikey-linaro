@@ -538,19 +538,21 @@ HI_S32 WinReleaseFrameThreadProcess(HI_VOID* pArg)
 	{
 	    if (pstWinRelFrame->pstNeedRelFrmNode[i])
 	    {
-		if ( pstWinRelFrame->pstNeedRelFrmNode[i]->bStillFrame)
-		{
-		    Win_DestroyStillFrame(pstWinRelFrame->pstNeedRelFrmNode[i]);
-		    pstWinRelFrame->pstNeedRelFrmNode[i] = HI_NULL;
-		}
-	    }
-	}
+                if (HI_DRV_FRAME_VDP_ALLOCATE_STILL == pstWinRelFrame->pstNeedRelFrmNode[i]->u32StillFrame)
+                {
+				Win_DestroyStillFrame(pstWinRelFrame->pstNeedRelFrmNode[i]);
+                    pstWinRelFrame->pstNeedRelFrmNode[i] = HI_NULL;
+                }
+            }
+        }
 
-	pstWinRelFrame->enThreadEvent = EVENT_BUTT;
+        WinBuf_RetAllMemRefCnts();
 
-	wait_event_timeout(pstWinRelFrame->stWaitQueHead, (EVENT_RELEASE == pstWinRelFrame->enThreadEvent),HZ);
+        pstWinRelFrame->enThreadEvent = EVENT_BUTT;
+        wait_event_timeout(pstWinRelFrame->stWaitQueHead, (EVENT_RELEASE == pstWinRelFrame->enThreadEvent),5);
     }
 
+    WinBuf_RetAllMemRefCnts();
     return HI_SUCCESS;
 }
 
@@ -4401,7 +4403,7 @@ HI_S32 WIN_QueueFrame(HI_HANDLE hWin, HI_DRV_VIDEO_FRAME_S *pFrameInfo, HI_DRV_D
     HI_DRV_VIDEO_PRIVATE_S *pstPriv = HI_NULL;
 
     WinCheckNullPointer(pFrameInfo);
-    pFrameInfo->bStillFrame =  HI_FALSE;
+    pFrameInfo->u32StillFrame =  HI_DRV_FRAME_NORMAL;
 
     pstPriv = (HI_DRV_VIDEO_PRIVATE_S *)pFrameInfo->u32Priv;
     /*if come into this func , means non-fence mode.*/
@@ -4419,8 +4421,7 @@ HI_S32 WIN_QueueSyncFrame(HI_HANDLE hWin, HI_DRV_VIDEO_FRAME_S *pFrameInfo, HI_U
 
     WinCheckNullPointer(pu32FenceFd);
 
-    pFrameInfo->bStillFrame =  HI_FALSE;
-
+    pFrameInfo->u32StillFrame =  HI_DRV_FRAME_NORMAL;
     pFrameInfo->enFieldMode = HI_DRV_FIELD_ALL;
 
     pstPriv = (HI_DRV_VIDEO_PRIVATE_S *)pFrameInfo->u32Priv;
@@ -4516,7 +4517,7 @@ HI_S32 WIN_DequeueFrame(HI_HANDLE hWin, HI_DRV_VIDEO_FRAME_S *pFrameInfo)
 
 HI_S32 WIN_SetZorder(HI_HANDLE hWin, HI_DRV_DISP_ZORDER_E enZFlag)
 {
-    WINDOW_S *pstWin;
+    WINDOW_S *pstWin = HI_NULL;
     HI_S32 nRet = HI_SUCCESS;
     HI_BOOL bVirtual;
 
@@ -4531,8 +4532,9 @@ HI_S32 WIN_SetZorder(HI_HANDLE hWin, HI_DRV_DISP_ZORDER_E enZFlag)
     bVirtual = WinCheckVirtual(hWin);
     if (!bVirtual)
     {
-	// s1 ������Ϸ���
-	WinCheckWindow(hWin, pstWin);
+
+        WinCheckWindow(hWin, pstWin);
+        DispCheckID(pstWin->enDisp);
 
 	switch(enZFlag)
 	{
@@ -4617,7 +4619,7 @@ HI_S32 WIN_CheckWinStatus(WINDOW_S *pstWin, HI_BOOL bBlock)
 
 HI_S32 WIN_Freeze(HI_HANDLE hWin, HI_BOOL bEnable, HI_DRV_WIN_SWITCH_E enFrz)
 {
-    WINDOW_S *pstWin;
+    WINDOW_S *pstWin = HI_NULL;
     HI_BOOL bVirtual;
     HI_U32    u = 0;
 
@@ -4627,9 +4629,7 @@ HI_S32 WIN_Freeze(HI_HANDLE hWin, HI_BOOL bEnable, HI_DRV_WIN_SWITCH_E enFrz)
     bVirtual = WinCheckVirtual(hWin);
     if (!bVirtual)
     {
-	// s1 ������Ϸ���
-	WinCheckWindow(hWin, pstWin);
-	//WinCheckSlaveWindow(pstWin);
+        WinCheckWindow(hWin, pstWin);
 
 	if (enFrz >= HI_DRV_WIN_SWITCH_BUTT)
 	{
@@ -4807,7 +4807,7 @@ HI_S32 WIN_Reset(HI_HANDLE hWin, HI_DRV_WIN_SWITCH_E enRst)
 
 HI_S32 WIN_Pause(HI_HANDLE hWin, HI_BOOL bEnable)
 {
-    WINDOW_S *pstWin;
+    WINDOW_S *pstWin = HI_NULL;
     HI_U32 u;
     HI_BOOL bVirtual;
 
@@ -4816,8 +4816,7 @@ HI_S32 WIN_Pause(HI_HANDLE hWin, HI_BOOL bEnable)
 
     if (!bVirtual)
     {
-	// s1 ������Ϸ���
-	WinCheckWindow(hWin, pstWin);
+	// s1 ������Ϸ���?	WinCheckWindow(hWin, pstWin);
 
 	/*if  slave window in wbc mode,	 does not allow pause.	slave win's pause is realized by wbc.*/
 	if ((pstWin->enType == HI_DRV_WIN_ACTIVE_SLAVE) && (stDispWindow.eIsogeny_mode == ISOGENY_WBC_MODE))
@@ -4855,7 +4854,7 @@ HI_S32 WIN_Pause(HI_HANDLE hWin, HI_BOOL bEnable)
 
 HI_S32 WIN_SetStepMode(HI_HANDLE hWin, HI_BOOL bStepMode)
 {
-    WINDOW_S *pstWin;
+    WINDOW_S *pstWin = HI_NULL;
     HI_BOOL bVirtual;
 
     WinCheckDeviceOpen();
@@ -4864,8 +4863,7 @@ HI_S32 WIN_SetStepMode(HI_HANDLE hWin, HI_BOOL bStepMode)
 
     if (!bVirtual)
     {
-	// s1 ������Ϸ���
-	WinCheckWindow(hWin, pstWin);
+	// s1 ������Ϸ���?	WinCheckWindow(hWin, pstWin);
 
 	// s2 set enable
 	if (pstWin->bUpState && pstWin->bEnable)
@@ -4894,7 +4892,7 @@ HI_S32 WIN_SetStepMode(HI_HANDLE hWin, HI_BOOL bStepMode)
 
 HI_S32 WIN_SetStepPlay(HI_HANDLE hWin)
 {
-    WINDOW_S* pstWin;
+    WINDOW_S* pstWin = HI_NULL;
     HI_BOOL bVirtual;
 
     WinCheckDeviceOpen();
@@ -4903,8 +4901,7 @@ HI_S32 WIN_SetStepPlay(HI_HANDLE hWin)
 
     if (!bVirtual)
     {
-	// s1 ������Ϸ���
-	WinCheckWindow(hWin, pstWin);
+	// s1 ������Ϸ���?	WinCheckWindow(hWin, pstWin);
 
 	// play next frame
 	pstWin->bStepPlayNext = HI_TRUE;
@@ -4928,7 +4925,7 @@ HI_S32 WIN_SetStepPlay(HI_HANDLE hWin)
 
 HI_S32 WIN_SetQuick(HI_HANDLE hWin, HI_BOOL bEnable)
 {
-    WINDOW_S *pstWin;
+    WINDOW_S *pstWin = NULL;
     HI_BOOL bVirtual = HI_FALSE;
 
     WinCheckDeviceOpen();
@@ -4936,8 +4933,7 @@ HI_S32 WIN_SetQuick(HI_HANDLE hWin, HI_BOOL bEnable)
     bVirtual = WinCheckVirtual(hWin);
     if (!bVirtual)
     {
-	// s1 ������Ϸ���
-	WinCheckWindow(hWin, pstWin);
+	// s1 ������Ϸ���?	WinCheckWindow(hWin, pstWin);
 
 	// s2 set enable
 	if (pstWin->bUpState && pstWin->bEnable)
@@ -5143,7 +5139,7 @@ HI_S32 WIN_CreatStillFrame(HI_DRV_VIDEO_FRAME_S *pFrameinfo,HI_DRV_VIDEO_FRAME_S
     pStillFrameInfo->stBufAddr[0].u32PhyAddr_Cr = stMMZ_StillFrame.u32StartPhyAddr +( pFrameinfo->stBufAddr[0].u32PhyAddr_Cr - stMMZ_Frame.u32StartPhyAddr );
     pStillFrameInfo->stBufAddr[0].u32Stride_Cr = pFrameinfo->stBufAddr[0].u32Stride_Cr;
 
-    pStillFrameInfo->bStillFrame = HI_TRUE;
+    pStillFrameInfo->u32StillFrame = HI_DRV_FRAME_VDP_ALLOCATE_STILL;
 
     DISP_OS_MMZ_UnMap(&stMMZ_StillFrame);
     DISP_OS_MMZ_UnMap(&stMMZ_Frame);
@@ -5164,7 +5160,7 @@ HI_S32 Win_DestroyStillFrame(HI_DRV_VIDEO_FRAME_S *pStillFrameInfo)
     HI_VDEC_PRIV_FRAMEINFO_S *pstPrivInfo = HI_NULL;
 
     WinCheckNullPointer(pStillFrameInfo);
-    if (pStillFrameInfo->bStillFrame)
+    if (HI_DRV_FRAME_VDP_ALLOCATE_STILL == pStillFrameInfo->u32StillFrame)
     {
 	memset((void*)&stMMZ_StillFrame, 0, sizeof(DISP_MMZ_BUF_S));
 	pstPrivInfo = (HI_VDEC_PRIV_FRAMEINFO_S *)(pStillFrameInfo->u32Priv);
@@ -5208,8 +5204,7 @@ HI_S32 Win_DebugGetHandle(HI_DRV_DISPLAY_E enDisp, WIN_HANDLE_ARRAY_S *pstWin)
 
     WinCheckDeviceOpen();
 
-    // s1 ������Ϸ���
-    WinCheckNullPointer(pstWin);
+    // s1 ������Ϸ���?    WinCheckNullPointer(pstWin);
 
     DISP_MEMSET(pstWin, 0, sizeof(WIN_HANDLE_ARRAY_S));
 
@@ -5309,7 +5304,7 @@ HI_VOID ISR_WinReleaseUSLFrame(WINDOW_S *pstWin)
     nRet = WinBufferGetULSFrame(&pstWin->stBuffer, &stRlsFrm);
     while(!nRet)
     {
-	if (stRlsFrm.bStillFrame)
+        if (HI_DRV_FRAME_VDP_ALLOCATE_STILL == stRlsFrm.u32StillFrame)
 	{
 	    WIN_DestroyStillFrame(&stRlsFrm);
 	}
