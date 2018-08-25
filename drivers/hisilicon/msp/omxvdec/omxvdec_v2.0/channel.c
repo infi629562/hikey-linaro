@@ -1249,6 +1249,15 @@ HI_S32 channel_create_inst(struct file *fd, OMXVDEC_DRV_CFG *pcfg)
 
     VDEC_UP_INTERRUPTIBLE(&pchan->chan_mutex);
 
+    if (down_interruptible(&g_OmxVdec->frame_release_mutex))
+    {
+        OmxPrint(OMX_FATAL, "%s down_interruptible failed\n", __func__);
+    }
+
+    g_OmxVdec->stRemainFrmList.ReleaseInfo[pchan->channel_id].status = RELEASE_STATUS_INIT;
+    g_OmxVdec->stRemainFrmList.already_global_released[pchan->channel_id] = HI_FALSE;
+    VDEC_UP_INTERRUPTIBLE(&g_OmxVdec->frame_release_mutex);
+
     OmxPrint(OMX_TRACE, "%s exit normally!\n", __func__);
 
     return pchan->channel_id;
@@ -2364,7 +2373,25 @@ HI_S32 channel_record_occupied_frame(OMXVDEC_CHAN_CTX *pchan)
 	return HI_FAILURE;
     }
 
+    if (down_interruptible(&g_OmxVdec->frame_release_mutex))
+    {
+        OmxPrint(OMX_FATAL, "%s down_interruptible failed\n", __func__);
+    }
+
+    if (g_OmxVdec->stRemainFrmList.ReleaseInfo[pchan->channel_id].status == RELEASE_STATUS_GLOBAL_RELEASE)
+    {
+        OmxPrint(OMX_INFO, "%s no need record\n", __func__);
+        VDEC_UP_INTERRUPTIBLE(&g_OmxVdec->frame_release_mutex);
+
+        return HI_SUCCESS;
+    }
+
+    g_OmxVdec->stRemainFrmList.ReleaseInfo[pchan->channel_id].status = RELEASE_STATUS_DESTORY;
+
+    OmxPrint(OMX_ALWS, "%s, %d\n", __func__, __LINE__);
     ret = decoder_record_occoupied_frame(pchan);
+
+    VDEC_UP_INTERRUPTIBLE(&g_OmxVdec->frame_release_mutex);
 
     OmxPrint(OMX_TRACE, "%s exit\n", __func__);
 
@@ -2556,6 +2583,7 @@ HI_S32 channel_find_nodeId_can_release(OMXVDEC_List_S* pList, HI_U32* pIndex)
 	pSpecialFrmRec = &pList->stSpecialFrmRec[index];
 	if ( pSpecialFrmRec->bCanRls == HI_TRUE )
 	{
+            OmxPrint(OMX_FATAL, "%s, %d, pSpecialFrmRec->frmBufRec.u32StartPhyAddr = 0x%08x\n", __func__, __LINE__, pSpecialFrmRec->frmBufRec.u32StartPhyAddr);
 	    *pIndex = index;
 	    break;
 	}

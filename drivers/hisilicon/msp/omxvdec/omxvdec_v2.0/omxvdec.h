@@ -160,6 +160,19 @@ typedef enum {
     SAVE_FLIE_IMG,
 }eSAVE_FLIE;
 
+typedef enum {
+    RELEASE_STATUS_INIT = 0,
+    RELEASE_STATUS_DESTORY,
+    RELEASE_STATUS_GLOBAL_RELEASE,
+    RELEASE_STATUS_BUTT,
+} eGLOBAL_RELEASE_STATUS;
+
+typedef struct
+{
+    HI_U32 channel_id;
+    eGLOBAL_RELEASE_STATUS status;
+} OMXVDEC_RELEASE_INFO;
+
 #ifdef VFMW_VPSS_BYPASS_EN
 /* vdec remain frame List */
 //add by sdk
@@ -185,6 +198,8 @@ typedef struct tagVDEC_LIST_S
     HI_S32		 s32Num;
     spinlock_t		 bypass_lock;
     OMXVDEC_FRM_INFO_S	 stSpecialFrmRec[OMXVDEC_MAX_REMAIN_FRM_NUM];
+    OMXVDEC_RELEASE_INFO ReleaseInfo[MAX_CHANNEL_NUM];
+    HI_BOOL already_global_released[MAX_CHANNEL_NUM];
 }OMXVDEC_List_S;
 
 typedef struct
@@ -203,6 +218,7 @@ typedef struct {
     struct list_head	chan_list;
     spinlock_t		lock;
     spinlock_t		channel_lock;
+    struct semaphore    frame_release_mutex;
     struct cdev		cdev;
     struct device      *device;
 #ifdef VFMW_VPSS_BYPASS_EN

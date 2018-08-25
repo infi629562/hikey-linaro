@@ -23,7 +23,7 @@ extern "C" {
 
 
 /* VDEC VERSION */
-#define VDEC_VERSION		    (2017031097)
+#define VDEC_VERSION		    (2017031096)
 #define VDEC_DBG_MODULE_VDI	    (0x0)
 #define VDEC_DEBUG		    (0)
 

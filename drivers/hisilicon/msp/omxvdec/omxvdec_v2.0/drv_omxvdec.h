@@ -28,7 +28,7 @@
 #include "drv_omxvdec_ext.h"
 
 
-#define OMXVDEC_VERSION			(2017072100)
+#define OMXVDEC_VERSION			(2017072199)
 
 #define OMXVDEC_NAME			"hi_omxvdec"
 #define DRIVER_PATH			"/dev/hi_omxvdec"

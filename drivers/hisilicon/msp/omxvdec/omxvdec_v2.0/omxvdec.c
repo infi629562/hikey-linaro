@@ -999,6 +999,7 @@ static HI_S32 omxvdec_probe(struct platform_device * pltdev)
     INIT_LIST_HEAD(&omxvdec->chan_list);
     spin_lock_init(&omxvdec->lock);
     spin_lock_init(&omxvdec->channel_lock);
+    VDEC_INIT_MUTEX(&omxvdec->frame_release_mutex);
 
     if (g_DynamicFsEnable == HI_TRUE && omxvdec->task.task_thread == HI_NULL)
     {

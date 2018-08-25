@@ -199,58 +199,141 @@ HI_S32 decoder_global_release_frame_inter(HI_U32 u32Index)
     return s32Ret;
 }
 
+HI_S32 decoder_check_frame_of_inst(HI_U32 chan_id, HI_U32 phy)
+{
+    HI_U32 i = 0;
+    DSF_SINGLE_BUF_S *pBufSlot = HI_NULL;
+    OMXVDEC_CHAN_CTX *pchan = HI_NULL;
+
+    pchan = channel_find_inst_by_channel_id(g_OmxVdec, chan_id);
+    if (pchan == HI_NULL)
+    {
+        OmxPrint(OMX_FATAL, "can't find pchan chan_id:%d, phy:0x%x\n", chan_id, phy);
+        return HI_FAILURE;
+    }
+
+    for (i = 0; i < MAX_DFS_BUF_NUM; i++)
+    {
+        pBufSlot = &(pchan->dfs.single_buf[i]);
+
+        if (phy == pBufSlot->frm_buf.u32StartPhyAddr)
+        {
+            break;
+        }
+    }
+
+    if (i >= MAX_DFS_BUF_NUM)
+    {
+        return HI_FAILURE;
+    }
+
+    return HI_SUCCESS;
+}
+
 /******************************************************/
 /***		 全局还帧接口			    ***/
 /** 此处输入的 pstFrame 应对应metadata强转中的信息  ***/
 /******************************************************/
-HI_S32 decoder_global_release_frame(HI_DRV_VIDEO_FRAME_S* pstFrame)
+HI_S32 decoder_global_release_frame(HI_DRV_VIDEO_FRAME_S *pstFrame, HI_BOOL bRlsVfmw)
 {
     HI_S32 s32Ret = HI_FAILURE;
     HI_U32 u32Index = 0;
     OMXVDEC_CHAN_CTX *pchan = HI_NULL;
     OMXVDEC_FRM_INFO_S* pSpecialFrmInfo;
+    HI_DRV_VIDEO_PRIVATE_S *pstPrivInfo = HI_NULL;
+    HI_VDEC_PRIV_FRAMEINFO_S *pstVdecPrivInfo = HI_NULL;
+    HI_U32 chan_id = 0;
     D_OMXVDEC_CHECK_PTR_RET(pstFrame);
 
     OmxPrint(OMX_TRACE, "%s enter!\n", __func__);
 
-    if (!((0 != g_OmxVdec->stRemainFrmList.s32Num) && (channel_IsOccupiedFrm(pstFrame->stBufAddr[0].u32PhyAddr_YHead, &u32Index))))
-    {
-	/* this frame isn't occupied frame */
-	OmxPrint(OMX_FATAL, "%s frame phy(0x%x) is invalid! remain num:%d\n", __func__, \
-		 pstFrame->stBufAddr[0].u32PhyAddr_Y, g_OmxVdec->stRemainFrmList.s32Num);
-    pchan = channel_find_inst_by_decoder_id(g_OmxVdec, 0);
+    pstPrivInfo = (HI_DRV_VIDEO_PRIVATE_S *)(pstFrame->u32Priv);
+    pstVdecPrivInfo = (HI_VDEC_PRIV_FRAMEINFO_S *)(pstPrivInfo->u32Reserve);
 
-    s32Ret = processor_release_image(pchan, pstFrame);
+    chan_id = pstVdecPrivInfo->ChanId;
 
-    if (s32Ret != HI_SUCCESS)
+    if (chan_id >= MAX_CHANNEL_NUM)
     {
-        OmxPrint(OMX_ERR, "%s release frame (0x%x) failed!\n", __func__, pstFrame->stBufAddr[0].u32PhyAddr_Y);
+        OmxPrint(OMX_FATAL, "chan_id: %d is invalid\n", chan_id);
         return HI_FAILURE;
     }
 
-    OmxPrint(OMX_FATAL, "decoder_global_release_frame success!\n");
+    if (down_interruptible(&g_OmxVdec->frame_release_mutex))
+    {
+        OmxPrint(OMX_FATAL, "%s down_interruptible failed!\n", __func__);
+    }
 
-    return HI_SUCCESS;
+    if ((g_OmxVdec->stRemainFrmList.already_global_released[chan_id] == HI_TRUE)
+        || (g_OmxVdec->stRemainFrmList.ReleaseInfo[chan_id].status == RELEASE_STATUS_GLOBAL_RELEASE))
+    {
+        VDEC_UP_INTERRUPTIBLE(&g_OmxVdec->frame_release_mutex);
+
+        return HI_SUCCESS;
+    }
+
+#if 0
+    if (g_OmxVdec->stRemainFrmList.ReleaseInfo[chan_id].status != RELEASE_STATUS_DESTORY)
+    {
+        s32Ret = decoder_check_frame_of_inst(chan_id, pstFrame->stBufAddr[0].u32PhyAddr_YHead);
+        if (s32Ret == HI_SUCCESS)
+        {
+            g_OmxVdec->stRemainFrmList.ReleaseInfo[chan_id].status = RELEASE_STATUS_GLOBAL_RELEASE;
+            VDEC_UP_INTERRUPTIBLE(&g_OmxVdec->frame_release_mutex);
+
+            return HI_SUCCESS;
+        }
+    }
+#endif
+
+    VDEC_UP_INTERRUPTIBLE(&g_OmxVdec->frame_release_mutex);
+
+    if (!((0 != g_OmxVdec->stRemainFrmList.s32Num) && (channel_IsOccupiedFrm(pstFrame->stBufAddr[0].u32PhyAddr_YHead, &u32Index))))
+    {
+        /* this frame isn't occupied frame */
+        OmxPrint(OMX_FATAL, "%s frame phy(0x%x) is invalid! Remain num: %d\n", __func__, pstFrame->stBufAddr[0].u32PhyAddr_YHead, g_OmxVdec->stRemainFrmList.s32Num);
+
+        pchan = channel_find_inst_by_decoder_id(g_OmxVdec, 0);
+
+        if (pchan == HI_NULL)
+        {
+            OmxPrint(OMX_ERR, "no channel available!\n");
+            return HI_FAILURE;
+        }
+
+        if (bRlsVfmw == HI_TRUE)
+        {
+            s32Ret = processor_release_image(pchan, pstFrame);
+
+            if (s32Ret != HI_SUCCESS)
+            {
+                OmxPrint(OMX_ERR, "%s release frame (0x%x) failed!\n", __func__, pstFrame->stBufAddr[0].u32PhyAddr_Y);
+                return HI_FAILURE;
+            }
+        }
+
+        OmxPrint(OMX_FATAL, "decoder_global_release_frame success!\n");
+
+        return HI_SUCCESS;
     }
 
     if (u32Index >= OMXVDEC_MAX_REMAIN_FRM_NUM)
     {
-	OmxPrint(OMX_FATAL, "%s u32Index = %d is invalid!\n", __func__, u32Index);
+        OmxPrint(OMX_FATAL, "%s u32Index = %d is invalid!\n", __func__, u32Index);
 
-	return HI_FAILURE;
+        return HI_FAILURE;
     }
     else
     {
-	pSpecialFrmInfo = &g_OmxVdec->stRemainFrmList.stSpecialFrmRec[u32Index];
+        pSpecialFrmInfo = &g_OmxVdec->stRemainFrmList.stSpecialFrmRec[u32Index];
     }
 
     if (pSpecialFrmInfo->frmBufRec.u32StartPhyAddr != 0)
     {
-	OmxPrint(OMX_ERR, "%s vir:0x%p phy:0x%x	 type:%d\n", __func__, pSpecialFrmInfo->frmBufRec.pu8StartVirAddr, \
-	    pSpecialFrmInfo->frmBufRec.u32StartPhyAddr, pSpecialFrmInfo->enbufferNodeStatus);
+        OmxPrint(OMX_ERR, "%s vir: 0x%p phy: 0x%x type: %d\n", __func__, pSpecialFrmInfo->frmBufRec.pu8StartVirAddr,
+                 pSpecialFrmInfo->frmBufRec.u32StartPhyAddr, pSpecialFrmInfo->enbufferNodeStatus);
 
-	pSpecialFrmInfo->bCanRls = HI_TRUE;
-	s32Ret = HI_SUCCESS;
+        pSpecialFrmInfo->bCanRls = HI_TRUE;
+        s32Ret = HI_SUCCESS;
     }
 
     OmxPrint(OMX_TRACE, "%s exit!\n", __func__);
@@ -259,6 +342,59 @@ HI_S32 decoder_global_release_frame(HI_DRV_VIDEO_FRAME_S* pstFrame)
 }
 
 EXPORT_SYMBOL(decoder_global_release_frame);
+
+HI_S32 decoder_global_release_all_frame(HI_S32 chan_id)
+{
+    unsigned long flags;
+    HI_S32 frameIndex = 0;
+    OMXVDEC_FRM_INFO_S *pFrameInfo = HI_NULL;
+
+    if (chan_id < 0 || chan_id > MAX_CHANNEL_NUM)
+    {
+        OmxPrint(OMX_FATAL, "%s chan_id out of range: %d\n", __func__, chan_id);
+
+        return HI_FAILURE;
+    }
+
+    if (down_interruptible(&g_OmxVdec->frame_release_mutex))
+    {
+        OmxPrint(OMX_FATAL, "%s down_interruptible failed!\n", __func__);
+    }
+
+    g_OmxVdec->stRemainFrmList.already_global_released[chan_id] = HI_TRUE;
+    if (g_OmxVdec->stRemainFrmList.ReleaseInfo[chan_id].status != RELEASE_STATUS_DESTORY)
+    {
+        g_OmxVdec->stRemainFrmList.ReleaseInfo[chan_id].status = RELEASE_STATUS_GLOBAL_RELEASE;
+        VDEC_UP_INTERRUPTIBLE(&g_OmxVdec->frame_release_mutex);
+
+        return HI_SUCCESS;
+    }
+
+    VDEC_UP_INTERRUPTIBLE(&g_OmxVdec->frame_release_mutex);
+
+    spin_lock_irqsave(&g_OmxVdec->stRemainFrmList.bypass_lock, flags);
+
+    for (frameIndex = 0; frameIndex < OMXVDEC_MAX_REMAIN_FRM_NUM; frameIndex++)
+    {
+        pFrameInfo = &(g_OmxVdec->stRemainFrmList.stSpecialFrmRec[frameIndex]);
+
+        if ((pFrameInfo->frmBufRec.u32StartPhyAddr != 0)
+            && (pFrameInfo->frmBufRec.u32StartPhyAddr != 0xffffffff)
+            && (pFrameInfo->bCanRls == HI_FALSE))
+       {
+           pFrameInfo->bCanRls = HI_TRUE;
+       }
+    }
+
+    spin_unlock_irqrestore(&g_OmxVdec->stRemainFrmList.bypass_lock, flags);
+
+    g_OmxVdec->task.task_state = TASK_STATE_ONCALL;
+    wake_up(&g_OmxVdec->task.task_wait);
+
+    return HI_SUCCESS;
+}
+
+EXPORT_SYMBOL(decoder_global_release_all_frame);
 
 #endif
 

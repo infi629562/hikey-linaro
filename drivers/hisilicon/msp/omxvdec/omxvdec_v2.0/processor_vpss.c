@@ -1319,6 +1319,7 @@ static HI_VOID processor_convert_private_info(OMXVDEC_CHAN_CTX *pchan, IMAGE *ps
 
     /*interleaved source, VPSS module swtich field to frame, need to adjust pts*/
     pstvdecPrivInfo->s32InterPtsDelta = (g_DeInterlaceEnable == HI_FALSE) ? 0: pstImage->InterPtsDelta;
+    pstvdecPrivInfo->ChanId = pchan->channel_id;
 
     OmxPrint(OMX_PTS, "calc framerate:%d delta:%d src pts:   %lld calc pts:   %lld\n", \
 	pstImage->frame_rate, pstvdecPrivInfo->s32InterPtsDelta, pstImage->SrcPts, pstFrame->s64OmxPts);

@@ -349,14 +349,18 @@ static HI_S32 BUFMNG_VDEC_List_Del(VDEC_List_S* pList, HI_U32 u32Index);
 static HI_S32 BUFMNG_VDEC_List_FindNodeIndex(VDEC_List_S* pList, HI_U32 u32TargetPhyAddr, HI_U32* pIndex);
 static HI_S32 BUFMNG_VDEC_List_FindNodeIndexCanRls(VDEC_List_S* pList, HI_U32* pIndex);
 
-HI_S32 HI_DRV_VDEC_GlobalRelFrm(HI_DRV_VIDEO_FRAME_S* pstFrame);
-HI_S32 decoder_global_release_frame(HI_DRV_VIDEO_FRAME_S* pstFrame);
+HI_S32 HI_DRV_VDEC_GlobalRelFrm(HI_DRV_VIDEO_FRAME_S *pstFrame);
+HI_S32 HI_DRV_VDEC_GlobalRelAllFrm(HI_VOID);
+HI_S32 decoder_global_release_frame(HI_DRV_VIDEO_FRAME_S *pstFrame, HI_BOOL bRlsVfmw);
+HI_S32 decoder_global_release_all_frame(HI_S32 chan_id);
+
 HI_S32 HI_DRV_VDEC_GetVideoBypassInfo(HI_HANDLE hHandle, HI_BOOL* pbVideoBypass);
 
 static HI_BOOL VDEC_IsSpecialFrm(VDEC_BUFFER_S* pstInputFrmRec);
 static HI_S32 VDEC_MarkSpecialFrmCanRls(HI_DRV_VIDEO_FRAME_S* pstFrame);
 
 HI_S32 VDEC_DRV_GlobalRelFrmInter(HI_U32 u32Index);
+HI_VOID VDEC_DRV_GlobalFrameRelease(HI_VOID);
 
 #endif
 
@@ -14442,24 +14446,57 @@ static HI_S32 VDEC_Ioctl_GolbaRelease(struct file*  filp, unsigned int cmd, void
 
     if (arg == HI_NULL)
     {
-	HI_ERR_VDEC("CMD %d Bad arg!\n", cmd);
-	return HI_ERR_VDEC_INVALID_PARA;
+        HI_ERR_VDEC("CMD %d Bad arg!\n", cmd);
+        return HI_ERR_VDEC_INVALID_PARA;
     }
 
     s32Ret = HI_DRV_VDEC_GlobalRelFrm(&((VDEC_CMD_GLOBAL_REL_FRM_S*)arg)->FrmInfo);
     if (s32Ret != HI_SUCCESS)
     {
-//TO DO
-//#if 0
 #ifdef ANDROID
-	s32Ret = decoder_global_release_frame(&((VDEC_CMD_GLOBAL_REL_FRM_S*)arg)->FrmInfo);
+        s32Ret = decoder_global_release_frame(&((VDEC_CMD_GLOBAL_REL_FRM_S*)arg)->FrmInfo, HI_FALSE);
 
-	if (s32Ret != HI_SUCCESS)
+        if (s32Ret != HI_SUCCESS)
 #endif
-//#endif
-	{
-	    HI_ERR_VDEC("HI_DRV_VDEC_GlobalRelFrm err!:%d\n", s32Ret);
-	}
+        {
+            HI_ERR_VDEC("HI_DRV_VDEC_GlobalRelFrm err!:%d\n", s32Ret);
+        }
+    }
+
+    return s32Ret;
+}
+
+static HI_S32 VDEC_Ioctl_GlobalReleaseAllFrame(struct file *filp, unsigned int cmd, void *arg)
+{
+    HI_S32 s32Ret = HI_SUCCESS;
+    HI_DRV_VIDEO_FRAME_S *pVideoFrame = HI_NULL;
+    HI_DRV_VIDEO_PRIVATE_S *pVideoPrivate = HI_NULL;
+    HI_VDEC_PRIV_FRAMEINFO_S *pVdecPrivate = HI_NULL;
+
+    if (arg == HI_NULL)
+    {
+        HI_ERR_VDEC("CMD %d Bad arg!\n", cmd);
+        return HI_ERR_VDEC_INVALID_PARA;
+    }
+
+    pVideoFrame = (HI_DRV_VIDEO_FRAME_S *)(arg);
+    pVideoPrivate = (HI_DRV_VIDEO_PRIVATE_S *)(pVideoFrame->u32Priv);
+    pVdecPrivate = (HI_VDEC_PRIV_FRAMEINFO_S *)(pVideoPrivate->u32Reserve);
+
+    s32Ret = HI_DRV_VDEC_GlobalRelAllFrm();
+    if (s32Ret != HI_SUCCESS)
+    {
+#ifdef ANDROID
+        s32Ret = decoder_global_release_all_frame(pVdecPrivate->ChanId);
+        if (s32Ret != HI_SUCCESS)
+        {
+            HI_ERR_VDEC("HI_DRV_VDEC_GlobalRelAllFrm err: %d\n", s32Ret);
+        }
+        else
+#endif
+        {
+            HI_ERR_VDEC("HI_DRV_VDEC_GlobalRelAllFrm success\n");
+        }
     }
 
     return s32Ret;
@@ -14571,6 +14608,7 @@ static const IOCTL_COMMAND_NODE g_IOCTL_CommandTable[] =
 #ifdef VFMW_VPSS_BYPASS_EN
     {UMAPC_VDEC_CHAN_GLOBALREL,		    VDEC_Ioctl_GolbaRelease},
     {UMAPC_VDEC_CHAN_GETVIDEOBYPASS,	    VDEC_Ioctl_GetVidoByPass},
+    {UMAPC_VDEC_CHAN_GLOBALRELALL,          VDEC_Ioctl_GlobalReleaseAllFrame},
 #endif
     {UMAPC_VDEC_CHAN_SCENE_MODE,	    VDEC_Ioctl_SetSceneMode},
 
@@ -16776,7 +16814,31 @@ HI_S32 HI_DRV_VDEC_GlobalRelFrm(HI_DRV_VIDEO_FRAME_S* pstFrame)
     return s32Ret;
 }
 
+HI_S32 HI_DRV_VDEC_GlobalRelAllFrm()
+{
+    HI_S32 s32Ret = HI_FAILURE;
+    HI_U32 frameIndex = 0;
+    VDEC_SPECIAL_FRM_INFO_S* pFrameInfo;
 
+    BUFMNG_SpinLockIRQ(&s_stVdecDrv.stRemainFrmList.stIrq);
+
+    for (frameIndex = 0; frameIndex < VDEC_MAX_REMAIN_FRM_NUM; frameIndex++)
+    {
+        pFrameInfo = &(s_stVdecDrv.stRemainFrmList.stSpecialFrmRec[frameIndex]);
+        if ((pFrameInfo->frmBufRec.u32StartPhyAddr != 0)
+            && (pFrameInfo->frmBufRec.u32StartPhyAddr != 0xffffffff)
+            && pFrameInfo->bCanRls == HI_FALSE)
+       {
+           pFrameInfo->bCanRls = HI_TRUE;
+       }
+    }
+
+    BUFMNG_SpinUnLockIRQ(&s_stVdecDrv.stRemainFrmList.stIrq);
+
+    wake_up_process(s_stVdecDrv.pVdecTask);
+
+    return s32Ret;
+}
 
 /******************************************************/
 /***		≤È—Ø «∑Òbypass			    ***/
