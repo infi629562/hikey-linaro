@@ -36,6 +36,7 @@ typedef struct hiSTREAM_LIST_S
 
 typedef struct
 {
+    VBOOL   bStopReadStream;
     SINT32	Head_NS;
     SINT32	Head_S;
     SINT32	Tail_S;

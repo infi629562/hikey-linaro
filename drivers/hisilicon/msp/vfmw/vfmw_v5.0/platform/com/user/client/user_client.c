@@ -351,6 +351,7 @@ static SINT32 VFMW_UC_ClearStream(SINT32 ChanID)
     }
 
     OSAL_FP_memset(&g_pStreamBuf[ChanID], 0, sizeof(RAW_ARRAY_NS));
+    g_pStreamBuf[ChanID].bStopReadStream = 0;
 
     return VDEC_OK;
 }
