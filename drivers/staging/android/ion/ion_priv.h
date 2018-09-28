@@ -494,13 +494,9 @@ void ion_free_nolock(struct ion_client *client, struct ion_handle *handle);
 
 int ion_handle_put_nolock(struct ion_handle *handle);
 
-struct ion_handle *ion_handle_get_by_id(struct ion_client *client,
-						int id);
-
 int ion_handle_put(struct ion_handle *handle);
 
 int ion_query_heaps(struct ion_client *client, struct ion_heap_query *query);
-
 
 /**
  * hisi_register_ion_device() - register device for heaps
@@ -508,5 +504,8 @@ int ion_query_heaps(struct ion_client *client, struct ion_heap_query *query);
 int hisi_register_ion_device(void);
 
 extern struct device *hisi_get_cma_device(const char *name);
+
+int ion_share_dma_buf_fd_nolock(struct ion_client *client,
+				struct ion_handle *handle);
 
 #endif /* _ION_PRIV_H */
