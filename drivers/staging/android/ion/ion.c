@@ -540,28 +540,35 @@ void ion_free(struct ion_client *client, struct ion_handle *handle)
 }
 EXPORT_SYMBOL(ion_free);
 
-int ion_phys(struct ion_client *client, struct ion_handle *handle,
-	     ion_phys_addr_t *addr, size_t *len)
+int _ion_phys(struct ion_client *client, struct ion_handle *handle,
+	      ion_phys_addr_t *addr, size_t *len)
 {
 	struct ion_buffer *buffer;
 	int ret;
 
-	mutex_lock(&client->lock);
-	if (!ion_handle_validate(client, handle)) {
-		mutex_unlock(&client->lock);
+	if (!ion_handle_validate(client, handle))
 		return -EINVAL;
-	}
 
 	buffer = handle->buffer;
 
 	if (!buffer->heap->ops->phys) {
 		pr_err("%s: ion_phys is not implemented by this heap (name=%s, type=%d).\n",
 			__func__, buffer->heap->name, buffer->heap->type);
-		mutex_unlock(&client->lock);
 		return -ENODEV;
 	}
-	mutex_unlock(&client->lock);
 	ret = buffer->heap->ops->phys(buffer->heap, buffer, addr, len);
+	return ret;
+}
+
+int ion_phys(struct ion_client *client, struct ion_handle *handle,
+	     ion_phys_addr_t *addr, size_t *len)
+{
+	int ret;
+
+	mutex_lock(&client->lock);
+	ret = _ion_phys(client, handle, addr, len);
+	mutex_unlock(&client->lock);
+
 	return ret;
 }
 EXPORT_SYMBOL(ion_phys);
@@ -702,19 +709,15 @@ static int do_iommu_map(struct ion_buffer *buffer,
 	return 0;
 }
 
-int ion_map_iommu(struct ion_client *client, struct ion_handle *handle,
-					struct iommu_map_format *format)
+int _ion_map_iommu(struct ion_client *client, struct ion_handle *handle,
+		   struct iommu_map_format *format)
 {
 	struct ion_buffer *buffer;
 	int ret = 0;
 
-	/* lock client */
-	mutex_lock(&client->lock);
-
 	/* check if the handle belongs to client. */
 	if (!ion_handle_validate(client, handle)) {
 		pr_err("%s: invalid handle passed to iommu map.\n", __func__);
-		mutex_unlock(&client->lock);
 		return -EINVAL;
 	}
 
@@ -769,8 +772,19 @@ int ion_map_iommu(struct ion_client *client, struct ion_handle *handle,
 	memcpy(format, &buffer->iommu_map->format, sizeof(*format));
 
 out:
-	/* unlock buffer and unlock client */
+	/* unlock buffer */
 	mutex_unlock(&buffer->lock);
+
+	return ret;
+}
+
+int ion_map_iommu(struct ion_client *client, struct ion_handle *handle,
+		  struct iommu_map_format *format)
+{
+	int ret;
+
+	mutex_lock(&client->lock);
+	ret = _ion_map_iommu(client, handle, format);
 	mutex_unlock(&client->lock);
 
 	return ret;
@@ -790,17 +804,14 @@ static void do_iommu_unmap(struct kref *kref)
 	kfree(map);
 }
 
-void ion_unmap_iommu(struct ion_client *client, struct ion_handle *handle)
+void _ion_unmap_iommu(struct ion_client *client, struct ion_handle *handle)
 {
 	struct ion_iommu_map *iommu_map;
 	struct ion_buffer *buffer;
 
-	mutex_lock(&client->lock);
-
 	/* check if the handle belongs to client. */
 	if (!ion_handle_validate(client, handle)) {
 		pr_err("%s: invalid handle passed to iommu unmap.\n", __func__);
-		mutex_unlock(&client->lock);
 		return;
 	}
 
@@ -818,23 +829,25 @@ void ion_unmap_iommu(struct ion_client *client, struct ion_handle *handle)
 
 out:
 	mutex_unlock(&buffer->lock);
+}
+
+void ion_unmap_iommu(struct ion_client *client, struct ion_handle *handle)
+{
+	mutex_lock(&client->lock);
+	_ion_unmap_iommu(client, handle);
 	mutex_unlock(&client->lock);
 }
 EXPORT_SYMBOL(ion_unmap_iommu);
 
-int ion_map_sec_iommu(struct ion_client *client, struct ion_handle *handle,
-					struct iommu_map_format *format)
+int _ion_map_sec_iommu(struct ion_client *client, struct ion_handle *handle,
+		       struct iommu_map_format *format)
 {
 	struct ion_buffer *buffer;
 	int ret = 0;
 
-	/* lock client */
-	mutex_lock(&client->lock);
-
 	/* check if the handle belongs to client. */
 	if (!ion_handle_validate(client, handle)) {
 		pr_err("%s: invalid handle passed to sec iommu map.\n", __func__);
-		mutex_unlock(&client->lock);
 		return -EINVAL;
 	}
 
@@ -846,9 +859,8 @@ int ion_map_sec_iommu(struct ion_client *client, struct ion_handle *handle,
 	/* set sec flags  */
 	buffer->sec_flag = 1;
 
-	/* unlock buffer and unlock client */
+	/* unlock buffer */
 	mutex_unlock(&buffer->lock);
-	mutex_unlock(&client->lock);
 
 	ret = ion_map_iommu(client, handle, format);
 	if (ret) {
@@ -859,14 +871,29 @@ int ion_map_sec_iommu(struct ion_client *client, struct ion_handle *handle,
 	return ret;
 out:
 
-	mutex_lock(&client->lock);
 	mutex_lock(&buffer->lock);
 	buffer->sec_flag = 0;
-	/* unlock buffer and unlock client */
+	/* unlock buffer */
 	mutex_unlock(&buffer->lock);
+
+	return ret;
+}
+
+int ion_map_sec_iommu(struct ion_client *client, struct ion_handle *handle,
+		      struct iommu_map_format *format)
+{
+	int ret;
+
+	mutex_lock(&client->lock);
+	ret = _ion_map_sec_iommu(client, handle, format);
 	mutex_unlock(&client->lock);
 
 	return ret;
+}
+
+void _ion_unmap_sec_iommu(struct ion_client *client, struct ion_handle *handle)
+{
+	_ion_unmap_iommu(client, handle);
 }
 
 int ion_unmap_sec_iommu(struct ion_client *client, struct ion_handle *handle)
@@ -876,18 +903,15 @@ int ion_unmap_sec_iommu(struct ion_client *client, struct ion_handle *handle)
 	return 0;
 }
 
-int ion_iommu_map_ref(struct ion_client *client, struct ion_handle *handle,
-							unsigned int *ref)
+int _ion_iommu_map_ref(struct ion_client *client, struct ion_handle *handle,
+		       unsigned int *ref)
 {
 	struct ion_iommu_map *iommu_map;
 	struct ion_buffer *buffer;
 
-	mutex_lock(&client->lock);
-
 	/* check if the handle belongs to client. */
 	if (!ion_handle_validate(client, handle)) {
 		pr_err("%s: invalid handle passed to iommu unmap.\n", __func__);
-		mutex_unlock(&client->lock);
 		return -EINVAL;
 	}
 
@@ -908,9 +932,20 @@ int ion_iommu_map_ref(struct ion_client *client, struct ion_handle *handle,
 
 out:
 	mutex_unlock(&buffer->lock);
-	mutex_unlock(&client->lock);
 
 	return 0;
+}
+
+int ion_iommu_map_ref(struct ion_client *client, struct ion_handle *handle,
+		      unsigned int *ref)
+{
+	int ret;
+
+	mutex_lock(&client->lock);
+	ret = _ion_iommu_map_ref(client, handle, ref);
+	mutex_unlock(&client->lock);
+
+	return ret;
 }
 EXPORT_SYMBOL(ion_iommu_map_ref);
 

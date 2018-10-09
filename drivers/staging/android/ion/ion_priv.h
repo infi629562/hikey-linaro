@@ -508,4 +508,16 @@ extern struct device *hisi_get_cma_device(const char *name);
 int ion_share_dma_buf_fd_nolock(struct ion_client *client,
 				struct ion_handle *handle);
 
+/* HiSilicon extensions without holding client lock */
+int _ion_phys(struct ion_client *client, struct ion_handle *handle,
+	      ion_phys_addr_t *addr, size_t *len);
+int _ion_map_iommu(struct ion_client *client, struct ion_handle *handle,
+		   struct iommu_map_format *format);
+void _ion_unmap_iommu(struct ion_client *client, struct ion_handle *handle);
+int _ion_map_sec_iommu(struct ion_client *client, struct ion_handle *handle,
+		       struct iommu_map_format *format);
+void _ion_unmap_sec_iommu(struct ion_client *client, struct ion_handle *handle);
+int _ion_iommu_map_ref(struct ion_client *client, struct ion_handle *handle,
+		       unsigned int *ref);
+
 #endif /* _ION_PRIV_H */
