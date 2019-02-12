@@ -35,11 +35,11 @@ static char ion_default_cmd[MMZ_SETUP_CMDLINE_LEN] = "ddr,0,0,160M";
 
 #define cma_name_len		(10)
 #ifdef CONFIG_ION_HISI_UNMAPPED_HEAP
-#define cma_heap_start		(4)
-#else
 #define cma_heap_start		(3)
+#else
+#define cma_heap_start		(2)
 #endif
-#define cma_heap_num		(4)
+#define cma_heap_num		(3)
 static int cma_heap_index  = cma_heap_start;
 static char cma_name[cma_heap_num][cma_name_len];
 static struct ion_platform_heap hi_ion_heaps[]  = {
@@ -48,16 +48,12 @@ static struct ion_platform_heap hi_ion_heaps[]  = {
 		.type   = ION_HEAP_TYPE_SYSTEM,
 		.name   = "vmalloc",
 	}, [1] = {
-		.id	= ION_HEAP_TYPE_SYSTEM_CONTIG,
-		.type   = ION_HEAP_TYPE_SYSTEM_CONTIG,
-		.name   = "kmalloc",
-	}, [2] = {
 		.id	= ION_HEAP_TYPE_DMA,
 		.type	= ION_HEAP_TYPE_DMA,
 		.name	= "dma area",
 	},
 #ifdef CONFIG_ION_HISI_UNMAPPED_HEAP
-	[3] = {
+	[2] = {
 		.id     = ION_HEAP_TYPE_UNMAPPED,
 		.type   = ION_HEAP_TYPE_UNMAPPED,
 		.name   = "unmapped",
