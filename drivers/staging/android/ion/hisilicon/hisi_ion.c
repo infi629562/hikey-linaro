@@ -76,7 +76,7 @@ static int hisi_ion_probe(struct platform_device *pdev)
 	return 0;
 err:
 	for (i = 0; i < num_heaps; i++) {
-		if (heaps[i])
+		if (!IS_ERR_OR_NULL(heaps[i]))
 			ion_heap_destroy(heaps[i]);
 	}
 	kfree(heaps);
