@@ -489,7 +489,7 @@ HI_U32 AUTIL_VolumeLinear2RegdB(HI_U32 u32Linear)
     }
 
     /* if mute(volume=0), avoid tolerance in calculate FHLL_log10 */
-    if ((u32Linear == 0))
+    if (u32Linear == 0)
     {
 	RegdB = VOLUME_infdB;
     }
