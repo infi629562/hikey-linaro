@@ -1054,7 +1054,7 @@ HI_U32 iHAL_AIAO_P_GetIntStatusRaw(AIAO_PORT_ID_E enPortID)
 
 HI_U32 iHAL_AIAO_P_GetIntStatus(AIAO_PORT_ID_E enPortID)
 {
-    return iHAL_AIAO_P_GetIntStatus(enPortID);
+    return AIAO_HW_GetIntStatus(enPortID);
 }
 
 #ifdef HI_ALSA_AI_SUPPORT
