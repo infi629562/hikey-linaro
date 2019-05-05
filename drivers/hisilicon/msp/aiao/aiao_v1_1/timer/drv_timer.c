@@ -41,7 +41,7 @@ static TIMER_GLOBAL_RESOURCE_S	g_pstGlobalTIMERRS;
 
 static HI_VOID Timer_GetDefParam(AIAO_TIMER_Attr_S *pstTimerDefaultAttr)
 {
-    pstTimerDefaultAttr->stIfAttr.enRate = HI_UNF_SAMPLE_RATE_48K;
+    pstTimerDefaultAttr->stIfAttr.enRate = (AIAO_SAMPLE_RATE_E) HI_UNF_SAMPLE_RATE_48K;
     pstTimerDefaultAttr->stIfAttr.u32BCLK_DIV = HI_UNF_I2S_BCLK_4_DIV;
     pstTimerDefaultAttr->stIfAttr.u32FCLK_DIV = HI_UNF_I2S_MCLK_256_FS;
     pstTimerDefaultAttr->u32Config = TIMER_INTERRUPT_CONFIG_DF;

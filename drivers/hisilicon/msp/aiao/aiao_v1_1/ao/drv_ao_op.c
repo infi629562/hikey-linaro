@@ -451,7 +451,7 @@ static HI_S32 SndOpCreateAop(SND_OP_STATE_S *state,
     stHwPortAttr.stExtMem.tBufPhyAddr = stRbfMmz.u32StartPhyAddr;
     stHwPortAttr.stExtMem.tBufVirAddr = (HI_VIRT_ADDR_T)stRbfMmz.pu8StartVirAddr;
     stHwPortAttr.stExtMem.u32BufSize = u32BufSize;
-    stHwPortAttr.stIfAttr.enRate = enSampleRate;
+    stHwPortAttr.stIfAttr.enRate = (AIAO_SAMPLE_RATE_E) enSampleRate;
 
     Ret = HAL_AIAO_P_Open(enPort, &stHwPortAttr);
     if (HI_SUCCESS != Ret)
