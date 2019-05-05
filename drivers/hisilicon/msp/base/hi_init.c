@@ -24,8 +24,6 @@
 #include "hi_drv_sci.h"
 #include "drv_keyled_ext.h"
 #include "drv_ir_ext.h"
-#include "drv_jpeg_ext.h"
-#include "drv_jpge_ext.h"
 #include "drv_hifb_ext.h"
 #include "drv_tde_ext.h"
 #include "drv_tuner_ext.h"
