@@ -9,9 +9,6 @@
 
 #define HIL_MAX_NAME_LEN 16
 
-typedef unsigned int		HI_U32;
-typedef unsigned char		HI_U8;
-
 /* remove pclint waring anonymous struct or union */
 
 struct compat_mmb_info {

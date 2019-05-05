@@ -17,8 +17,6 @@
 #include "drv_mmz.h"
 #include "drv_mmz_ioctl.h"
 
-typedef unsigned int		HI_U32;
-
 #define HIL_MAX_NAME_LEN	16
 
 #ifndef PRINTK_CA
