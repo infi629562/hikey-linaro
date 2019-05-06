@@ -1884,7 +1884,7 @@ static void sVideoHardwareStatusGet(SiiInst_t inst, SiiVideoStatus_t *videoStatu
     }
 
     SII_MEMSET(videoStatus, 0x0, sizeof(SiiVideoStatus_t));
-	videoStatus->eCscOutQuan    = HDMI_QUANTIZATION_RANGE_FULL;
+	videoStatus->eCscOutQuan    = (QuantizationLevel_t) HDMI_QUANTIZATION_RANGE_FULL;
 
 	/* out put mute */
 	SiiModVideoPathRegRead(pVidPathParam->instTxCra, REG_ADDR__VP__OUTPUT_MUTE, (uint8_t *)&vp__output_mute, BIT_MASK__VP__OUTPUT_MUTE__SIZE);
