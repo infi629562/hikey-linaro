@@ -1087,7 +1087,7 @@ HI_VOID HAL_HDMI_HardwareInit(HDMI_HAL_S *pstHdmiHal)
 
 HI_VOID HAL_HDMI_IrqEnableSet(HDMI_HAL_S *pstHdmiHal, HDMI_INT_TYPE_E enIntType, HI_BOOL bEnable)
 {
-    SiiDrvTxInterruptEnableSet(pstHdmiHal->stHalCtx.hHdmiHw, enIntType, bEnable);
+    SiiDrvTxInterruptEnableSet(pstHdmiHal->stHalCtx.hHdmiHw, (SiiInterruptType_t) enIntType, bEnable);
 }
 
 #ifndef HDMI_BUILD_IN_BOOT
@@ -1275,9 +1275,9 @@ HI_VOID HAL_HDMI_HardwareStatusGet(HDMI_HAL_S  *pstHdmiHal, HDMI_HARDWARE_STATUS
     pstVideoStatus->bYCbCr422_444 = pvideoStatus->YUV422_444;
     pstVideoStatus->bYCbCr444_422 = pvideoStatus->YUV444_422;
     pstVideoStatus->bYCbCr422_420 = pvideoStatus->YUV422_420;
-    pstVideoStatus->enHvSyncPol	  = pvideoStatus->hvSyncPol;
+    pstVideoStatus->enHvSyncPol	  = (HDMI_HVSYNC_POLARITY_E) pvideoStatus->hvSyncPol;
     pstVideoStatus->enOutBitDepth = (phdmiStatus->outBitDepth  == HDMI_DEEP_COLOR_OFF) ? HDMI_VIDEO_BITDEPTH_OFF : phdmiStatus->outBitDepth;
-    pstVideoStatus->enDither	  = pvideoStatus->OutDitherMode;
+    pstVideoStatus->enDither	  = (HDMI_VIDEO_DITHER_E) pvideoStatus->OutDitherMode;
     pstVideoStatus->bVSyncPol	  = pvideoStatus->bVSyncPol;
     pstVideoStatus->bHSyncPol	  = pvideoStatus->bHSyncPol;
     pstVideoStatus->bCSyncPol	  = pvideoStatus->bCSyncPol;
@@ -1750,11 +1750,11 @@ HI_VOID HAL_HDMI_CscParamSet(HDMI_HAL_S *pstHdmiHal, HDMI_VIDEO_CONFIG_S* pstVid
 
     memset(&stCscConfig, 0, sizeof(SiiDrvTxCscCfg_t));
 
-    stCscConfig.enInClrSpc  = pstVideoCfg->enInColorSpace;
-    stCscConfig.enOutClrSpc = pstVideoCfg->enOutColorSpace;
-    stCscConfig.enInQuan    = pstVideoCfg->eOutCscQuantization;
-    stCscConfig.enOutQuan   = pstVideoCfg->eOutCscQuantization;
-    stCscConfig.enClrConvStd = pstVideoCfg->enConvStd;
+    stCscConfig.enInClrSpc  = (SiiDrvTxColorSpace_E) pstVideoCfg->enInColorSpace;
+    stCscConfig.enOutClrSpc = (SiiDrvTxColorSpace_E) pstVideoCfg->enOutColorSpace;
+    stCscConfig.enInQuan    = (SiiDrvTxQuantization_E) pstVideoCfg->eOutCscQuantization;
+    stCscConfig.enOutQuan   = (SiiDrvTxQuantization_E) pstVideoCfg->eOutCscQuantization;
+    stCscConfig.enClrConvStd = (SiiDrvTxConvStd_t) pstVideoCfg->enConvStd;
 
     SiiDrvTxCscConfig(pstHdmiHal->stHalCtx.hHdmiHw, &stCscConfig);
 
@@ -2367,7 +2367,7 @@ HI_S32 HAL_HDMI_DispFmtGet(HDMI_HAL_S *pstHdmiHal, HDMI_HAL_BASE_PARAM_S *pstBas
 	return HI_FAILURE;
     }
 
-    s32Ret = pstPdmFuncs->pfnPDM_GetDispParam(HI_DRV_DISPLAY_1, &stDispParam);
+    s32Ret = pstPdmFuncs->pfnPDM_GetDispParam((HI_UNF_DISP_E) HI_DRV_DISPLAY_1, &stDispParam);
     if (s32Ret == HI_FAILURE)
     {
 	HDMI_ERR("PDM_GetDispParam failed\r\n");
