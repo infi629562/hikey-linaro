@@ -38,14 +38,7 @@ SiiPlatformStatus_t SiiPlatformWrite(SiiPlatformInterface_t *pInterfaceInfo, uin
 void SiiPlatformDebugAssert( const char *pFileName, uint32_t lineNumber,
 	uint32_t expressionEvaluation, const char *pConditionText )
 {
-    // The following two parameters are currently not used
-    expressionEvaluation = expressionEvaluation; //to avoid compiler warnings about unused variable
-    pConditionText	 = pConditionText; // to avoid compiler warnings about unused variable
-
-#if 1
-    pFileName = pFileName; // to avoid compiler warnings about unused variable
-    lineNumber = lineNumber; // to avoid compiler warnings about unused variable
-#else
+#if 0
     // Example how to print the place where error happened:
     // Print file name and line number caused an assertion
     SII_PRINTF("\n\nAssertion failure: File %s, Line %d\n\n", pFileName, (int) lineNumber);
