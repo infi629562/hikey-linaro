@@ -1637,13 +1637,13 @@ static inline HI_VOID HIFB_ADP_DispSetting(OPTM_GFX_GP_E enGpId, HI_DRV_DISP_CAL
 {
      HI_BOOL bDispInfoChange = HI_FALSE;
 
-     bDispInfoChange = OPTM_DispInfoProcess(enGpId, pstDispInfo);
+     bDispInfoChange = OPTM_DispInfoProcess((OPTM_VDP_LAYER_GP_E) enGpId, pstDispInfo);
      if (HI_FALSE == bDispInfoChange)
      {
 	 return;
      }
 
-     OPTM_DispInfoUpdate(enGpId);
+     OPTM_DispInfoUpdate((OPTM_VDP_LAYER_GP_E) enGpId);
 
      if ((enGpId == OPTM_GFX_GP_1) || IS_MASTER_GP(enGpId))
      {
@@ -2081,7 +2081,7 @@ HIFB_COLOR_FMT_E OPTM_HalFmtTransferToPixerFmt(OPTM_VDP_GFX_IFMT_E enDataFmt)
 	return ePixFmt;
     }
 
-    return VDP_GFX_IFMT_BUTT;
+    return (HIFB_COLOR_FMT_E) VDP_GFX_IFMT_BUTT;
 }
 
 static inline HIFB_COLOR_FMT_E OPTM_ClutHalFmtTransferToPixFmt(OPTM_VDP_GFX_IFMT_E enDataFmt)
@@ -2103,7 +2103,7 @@ static inline HIFB_COLOR_FMT_E OPTM_ClutHalFmtTransferToPixFmt(OPTM_VDP_GFX_IFMT
 	 default:
 	    return HIFB_FMT_BUTT;
      }
-     return VDP_GFX_IFMT_BUTT;
+     return (HIFB_COLOR_FMT_E) VDP_GFX_IFMT_BUTT;
 }
 
 static inline HIFB_COLOR_FMT_E OPTM_RGBHalFmtTransferToPixFmt(OPTM_VDP_GFX_IFMT_E enDataFmt)
@@ -2117,7 +2117,7 @@ static inline HIFB_COLOR_FMT_E OPTM_RGBHalFmtTransferToPixFmt(OPTM_VDP_GFX_IFMT_
 	 default:
 	    return HIFB_FMT_BUTT;
      }
-     return VDP_GFX_IFMT_BUTT;
+     return (HIFB_COLOR_FMT_E) VDP_GFX_IFMT_BUTT;
 }
 
 static inline HIFB_COLOR_FMT_E OPTM_XRGBHalFmtTransferToPixFmt(OPTM_VDP_GFX_IFMT_E enDataFmt)
@@ -2149,7 +2149,7 @@ static inline HIFB_COLOR_FMT_E OPTM_XRGBHalFmtTransferToPixFmt(OPTM_VDP_GFX_IFMT
 	default:
 	    return HIFB_FMT_BUTT;
      }
-     return VDP_GFX_IFMT_BUTT;
+     return (HIFB_COLOR_FMT_E) VDP_GFX_IFMT_BUTT;
 }
 
 static inline HIFB_COLOR_FMT_E OPTM_XYCbCrHalFmtTransferToPixFmt(OPTM_VDP_GFX_IFMT_E enDataFmt)
@@ -2171,7 +2171,7 @@ static inline HIFB_COLOR_FMT_E OPTM_XYCbCrHalFmtTransferToPixFmt(OPTM_VDP_GFX_IF
 	 default:
 	    return HIFB_FMT_BUTT;
      }
-     return VDP_GFX_IFMT_BUTT;
+     return (HIFB_COLOR_FMT_E) VDP_GFX_IFMT_BUTT;
 }
 
 
@@ -2966,8 +2966,8 @@ HI_S32 OPTM_GfxSetGpRect(OPTM_GFX_GP_E enGpId, const HIFB_RECT * pstInputRect)
        return HI_FAILURE;
     }
 
-    OPTM_VDP_GP_SetParaUpd(enGpId,VDP_ZME_MODE_HOR);
-    OPTM_VDP_GP_SetParaUpd(enGpId,VDP_ZME_MODE_VER);
+    OPTM_VDP_GP_SetParaUpd(enGpId, (OPTM_VDP_GP_PARA_E) VDP_ZME_MODE_HOR);
+    OPTM_VDP_GP_SetParaUpd(enGpId, (OPTM_VDP_GP_PARA_E) VDP_ZME_MODE_VER);
 
     if (IS_SLAVER_GP(enGpId))
     {/** �����ͬԴ�ģ����ﲻ����GP1**/
@@ -3708,7 +3708,7 @@ HI_S32 OPTM_DispInfoUpdate(OPTM_VDP_LAYER_GP_E enGPId)
 
     if (IS_SLAVER_GP((OPTM_GFX_GP_E)enGPId))
     {
-	OPTM_GPSetCsc(enGPId, &g_stGfxGPDevice[enGPId].stCscPara,g_stGfxGPDevice[enGPId].bBGRState);
+	OPTM_GPSetCsc((OPTM_GFX_GP_E) enGPId, &g_stGfxGPDevice[enGPId].stCscPara,g_stGfxGPDevice[enGPId].bBGRState);
     }
     else
     {
