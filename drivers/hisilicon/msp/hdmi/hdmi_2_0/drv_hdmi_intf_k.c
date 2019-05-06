@@ -320,19 +320,19 @@ do{\
 do{\
     if (HI_UNF_HDMI_DEEP_COLOR_24BIT == udeepcolor)\
     {\
-	kdeepcolor = HDMI_DEEP_COLOR_24BIT;\
+	kdeepcolor = (HDMI_VIDEO_BITDEPTH_E) HDMI_DEEP_COLOR_24BIT;\
     }\
     else if (HI_UNF_HDMI_DEEP_COLOR_30BIT == udeepcolor)\
     {\
-	kdeepcolor = HDMI_DEEP_COLOR_30BIT;\
+	kdeepcolor = (HDMI_VIDEO_BITDEPTH_E) HDMI_DEEP_COLOR_30BIT;\
     }\
     else if (HI_UNF_HDMI_DEEP_COLOR_36BIT == udeepcolor)\
     {\
-	kdeepcolor = HDMI_DEEP_COLOR_36BIT;\
+	kdeepcolor = (HDMI_VIDEO_BITDEPTH_E) HDMI_DEEP_COLOR_36BIT;\
     }\
     else\
     {\
-	kdeepcolor = HDMI_DEEP_COLOR_24BIT;\
+	kdeepcolor = (HDMI_VIDEO_BITDEPTH_E) HDMI_DEEP_COLOR_24BIT;\
     }\
 }while(0)
 
@@ -765,12 +765,12 @@ static HDMI_EXPORT_FUNC_S s_stHdmiExportFuncs = {
 #define CHECK_HDMI_OPEN(HdmiId) \
 do \
 {   \
-    if (GetHdmiDevice(HdmiId) == HI_NULL) \
+    if (GetHdmiDevice((HDMI_DEVICE_ID_E) HdmiId) == HI_NULL) \
     { \
 	HDMI_WARN("The hdmi device id is wrong\n");\
 	return HI_FAILURE;\
     }\
-    if(GetHdmiDevice(HdmiId)->u32KernelCnt == 0 && GetHdmiDevice(HdmiId)->u32UserCnt == 0) \
+    if(GetHdmiDevice((HDMI_DEVICE_ID_E) HdmiId)->u32KernelCnt == 0 && GetHdmiDevice((HDMI_DEVICE_ID_E) HdmiId)->u32UserCnt == 0) \
     {	\
 	HDMI_WARN("The hdmi device not open\n");\
 	return HI_FAILURE;\
@@ -1253,7 +1253,7 @@ static HI_VOID HdmiHotPlugProcess(HDMI_DEVICE_ID_E enHdmiID)
 	pstAppAttr->bEnableVideo = HI_TRUE;
 	pstAppAttr->bEnableAudInfoFrame = HI_FALSE;
 	pstAppAttr->bEnableAviInfoFrame = HI_FALSE;
-	pstAppAttr->enOutColorSpace = HI_UNF_HDMI_VIDEO_MODE_RGB444;
+	pstAppAttr->enOutColorSpace = (HDMI_COLORSPACE_E) HI_UNF_HDMI_VIDEO_MODE_RGB444;
     }
 #endif
 
@@ -1327,7 +1327,7 @@ HI_S32 HI_DRV_HDMI_GetPlayStatus(HI_UNF_HDMI_ID_E enHdmi, HI_U32 *pu32Status)
     CHECK_HDMI_OPEN(enHdmi);
 
     HDMI_MEMSET(&stPlayStatus, 0, sizeof(DRV_HDMI_PLAYSTATUS_S));
-    stPlayStatus.enHdmiID = enHdmi;
+    stPlayStatus.enHdmiID = (HDMI_DEVICE_ID_E) enHdmi;
     s32Ret = HdmiExtIoctl(CMD_HDMI_GET_HDMI_PLAYSTATUS, &stPlayStatus);
     if (s32Ret == HI_SUCCESS)
     {
@@ -1352,7 +1352,7 @@ HI_S32 HI_DRV_HDMI_GetSinkCapability(HI_DRV_HDMI_ID_E enHdmi, HI_DRV_HDMI_SINK_C
 		return HI_FAILURE;
 	}
 
-	pstDrvCap->enHdmiID = enHdmi;
+	pstDrvCap->enHdmiID = (HDMI_DEVICE_ID_E) enHdmi;
 	s32Ret = HdmiExtIoctl(CMD_HDMI_GET_SINK_CAPABILITY, pstDrvCap);
 
 	if (s32Ret == HI_SUCCESS)
@@ -1377,7 +1377,7 @@ HI_S32 HI_DRV_HDMI_GetAudioCapability(HI_UNF_HDMI_ID_E enHdmi, HI_DRV_HDMI_AUDIO
     CHECK_HDMI_PTR_NULL(pstAudCap);
 	CHECK_HDMI_OPEN(enHdmi);
 
-	stTmpAudioCap.enHdmiID = enHdmi;
+	stTmpAudioCap.enHdmiID = (HDMI_DEVICE_ID_E) enHdmi;
     s32Ret = HdmiExtIoctl(CMD_HDMI_GET_AUDIO_CAPABILITY,&stTmpAudioCap);
 	if (s32Ret == HI_SUCCESS)
 	{
@@ -1390,7 +1390,7 @@ HI_S32 HI_DRV_HDMI_GetAudioCapability(HI_UNF_HDMI_ID_E enHdmi, HI_DRV_HDMI_AUDIO
 HI_S32 HI_DRV_HDMI_SetAudioMute(HI_UNF_HDMI_ID_E enHdmi)
 {
     CHECK_HDMI_OPEN(enHdmi);
-	DRV_HDMI_AudioEnable(GetHdmiDevice(enHdmi),HDMI_AO_MODE_DRV_AO,HI_FALSE);
+	DRV_HDMI_AudioEnable(GetHdmiDevice((HDMI_DEVICE_ID_E) enHdmi),HDMI_AO_MODE_DRV_AO,HI_FALSE);
 
     return HI_SUCCESS;
 }
@@ -1398,7 +1398,7 @@ HI_S32 HI_DRV_HDMI_SetAudioMute(HI_UNF_HDMI_ID_E enHdmi)
 HI_S32 HI_DRV_HDMI_SetAudioUnMute(HI_UNF_HDMI_ID_E enHdmi)
 {
     CHECK_HDMI_OPEN(enHdmi);
-	DRV_HDMI_AudioEnable(GetHdmiDevice(enHdmi),HDMI_AO_MODE_DRV_AO,HI_TRUE);
+	DRV_HDMI_AudioEnable(GetHdmiDevice((HDMI_DEVICE_ID_E) enHdmi),HDMI_AO_MODE_DRV_AO,HI_TRUE);
 
     return HI_SUCCESS;
 }
@@ -1410,15 +1410,15 @@ HI_S32 HI_DRV_HDMI_GetAOAttr(HI_UNF_HDMI_ID_E enHdmi, HDMI_AUDIO_ATTR_S *pstAudi
 
     CHECK_HDMI_PTR_NULL(pstAudioAttr);
     CHECK_HDMI_OPEN(enHdmi);
-    stDrvAOAttr.enHdmiID = enHdmi;
+    stDrvAOAttr.enHdmiID = (HDMI_DEVICE_ID_E) enHdmi;
     s32Ret = HdmiExtIoctl(CMD_HDMI_GET_AO_ATTR, &stDrvAOAttr);
     if (s32Ret == HI_SUCCESS)
     {
 	pstAudioAttr->bIsMultiChannel  = stDrvAOAttr.stAOAttr.enChanels > HDMI_AUDIO_FORMAT_2CH ? HI_TRUE : HI_FALSE;
 	HDMI_KAUDIOCODING_2_UAUDIOCODING(stDrvAOAttr.stAOAttr.enAudioCode,pstAudioAttr->enAudioCode);
-	pstAudioAttr->enBitDepth       = stDrvAOAttr.stAOAttr.enSampleDepth;
+	pstAudioAttr->enBitDepth       = (HI_UNF_BIT_DEPTH_E) stDrvAOAttr.stAOAttr.enSampleDepth;
 	HDMI_KSAMPLERATE_2_USAMPLERATE(stDrvAOAttr.stAOAttr.enSampleFs,pstAudioAttr->enSampleRate);
-	pstAudioAttr->enSoundIntf      = stDrvAOAttr.stAOAttr.enSoundIntf;
+	pstAudioAttr->enSoundIntf      = (HDMI_AUDIOINTERFACE_E) stDrvAOAttr.stAOAttr.enSoundIntf;
 	pstAudioAttr->u32Channels      = stDrvAOAttr.stAOAttr.enChanels;
 	pstAudioAttr->u8DownSampleParm = stDrvAOAttr.stAOAttr.bDownSample;
     }
@@ -1436,12 +1436,12 @@ HI_S32 HI_DRV_HDMI_SetAOAttr(HI_UNF_HDMI_ID_E enHdmi, HDMI_AUDIO_ATTR_S *pstAudi
     CHECK_HDMI_OPEN(enHdmi);
 
     memset(&stDrvAoAttr, 0, sizeof(DRV_HDMI_AO_ATTR_S));
-    stDrvAoAttr.enHdmiID = enHdmi;
+    stDrvAoAttr.enHdmiID = (HDMI_DEVICE_ID_E) enHdmi;
     //stDrvAoAttr.stAOAttr.enAudioCode	 = pstAudioAttr->enAudioCode;
     HDMI_UAUDIOCODING_2_KAUDIOCODING(pstAudioAttr->enAudioCode,stDrvAoAttr.stAOAttr.enAudioCode);
-    stDrvAoAttr.stAOAttr.enSampleDepth = pstAudioAttr->enBitDepth;
+    stDrvAoAttr.stAOAttr.enSampleDepth = (HDMI_AUDIO_BIT_DEPTH_E) pstAudioAttr->enBitDepth;
     HDMI_USAMPLERATE_2_KSAMPLERATE(pstAudioAttr->enSampleRate,stDrvAoAttr.stAOAttr.enSampleFs);
-    stDrvAoAttr.stAOAttr.enSoundIntf   = pstAudioAttr->enSoundIntf;
+    stDrvAoAttr.stAOAttr.enSoundIntf   = (HDMI_AUDIO_INTERFACE_E) pstAudioAttr->enSoundIntf;
     stDrvAoAttr.stAOAttr.enChanels     = pstAudioAttr->u32Channels;
     stDrvAoAttr.stAOAttr.bDownSample   = pstAudioAttr->u8DownSampleParm;
     HDMI_INFO("SoundIntf:%d, AudioCode:%d, SampleRate:%d, Channels:%d, BitDepth:%d\n",pstAudioAttr->enSoundIntf,pstAudioAttr->enAudioCode,pstAudioAttr->enSampleRate,pstAudioAttr->u32Channels,pstAudioAttr->enBitDepth);
@@ -1561,7 +1561,7 @@ static HI_S32 IntfkDisp2HdmiVoAttr(HDMI_DEVICE_S* pstHdmiDev, HDMI_VO_ATTR_S *ps
 	CHECK_HDMI_PTR_NULL(pstSrcAttr);
 
     HDMI_UDEEPCOLOR_2_KDEEPCOLOR(pstSrcAttr->enInBitDepth, pstDestAttr->enInBitDepth);
-    pstDestAttr->enStereoMode	   = pstSrcAttr->enStereoMode;
+    pstDestAttr->enStereoMode	   = (HDMI_3D_MODE_E) pstSrcAttr->enStereoMode;
     pstDestAttr->u32DispFmt	   = (HI_U32)pstSrcAttr->enVideoFmt;
     pstDestAttr->enVideoTiming	   = DispFmt2HdmiTiming(pstHdmiDev, pstSrcAttr->enVideoFmt);
     pstDestAttr->u32ClkFs	   = pstSrcAttr->u32ClkFs * pstSrcAttr->u32PixelRepeat;
@@ -1608,7 +1608,7 @@ HI_S32 HI_DRV_HDMI_PreFormat(HI_UNF_HDMI_ID_E enHdmi)
 
     CHECK_HDMI_OPEN(enHdmi);
 
-    pstHdmiDev = GetHdmiDevice(enHdmi);
+    pstHdmiDev = GetHdmiDevice((HDMI_DEVICE_ID_E) enHdmi);
     pstHdmiDev->stIntfStatus.u32PreformatInTime = HDMI_OSAL_GetTimeInMs();
 
     s32Ret = HdmiExtIoctl(CMD_HDMI_STOP, &enHdmi);
@@ -1633,7 +1633,7 @@ HI_S32 HI_DRV_HDMI_SetFormat(HI_UNF_HDMI_ID_E enHdmi, HDMI_VIDEO_ATTR_S *pstVide
     CHECK_HDMI_PTR_NULL(pstVideoAttr);
     CHECK_HDMI_OPEN(enHdmi);
 
-    pstHdmiDev = GetHdmiDevice(enHdmi);
+    pstHdmiDev = GetHdmiDevice((HDMI_DEVICE_ID_E) enHdmi);
     pstHdmiDev->stIntfStatus.u32SetformatInTime = HDMI_OSAL_GetTimeInMs();
 
     memset(&stDrvVoAttr, 0, sizeof(DRV_HDMI_VO_ATTR_S));
@@ -1641,9 +1641,9 @@ HI_S32 HI_DRV_HDMI_SetFormat(HI_UNF_HDMI_ID_E enHdmi, HDMI_VIDEO_ATTR_S *pstVide
     HDMI_INFO("VideoFmt:%d, StereoMode:%d, ClkFs:%d, PixelRepeat:%d, ColorSpace:%d\n",pstVideoAttr->enVideoFmt,pstVideoAttr->enStereoMode,
 	pstVideoAttr->u32ClkFs,pstVideoAttr->u32PixelRepeat,pstVideoAttr->u32ColorSpace);
 
-    IntfkDisp2HdmiVoAttr(GetHdmiDevice(enHdmi),&stDrvVoAttr.stVOAttr, pstVideoAttr);
+    IntfkDisp2HdmiVoAttr(GetHdmiDevice((HDMI_DEVICE_ID_E) enHdmi),&stDrvVoAttr.stVOAttr, pstVideoAttr);
 
-    stDrvVoAttr.enHdmiID = enHdmi;
+    stDrvVoAttr.enHdmiID = (HDMI_DEVICE_ID_E) enHdmi;
     s32Ret = HdmiExtIoctl(CMD_HDMI_SET_VO_ATTR, &stDrvVoAttr);
     if (s32Ret != HI_SUCCESS)
     {
@@ -1677,11 +1677,11 @@ static HI_VOID Disp2HdmidrAttr(HDMI_DEVICE_S* pstHdmiDev, HDMI_HDR_ATTR_S *pstDr
     CHECK_HDMI_PTR_NULL_NO_RET(pstDrvHdrAttr);
     CHECK_HDMI_PTR_NULL_NO_RET(pstHdrAttr);
 
-    pstDrvHdrAttr->enHdrMode	    = pstHdrAttr->enHdrMode;
+    pstDrvHdrAttr->enHdrMode	    = (HDMI_HDR_MODE_E) pstHdrAttr->enHdrMode;
     pstDrvHdrAttr->enUserHdrMode    = pstHdmiDev->stAttr.stHdrAttr.enUserHdrMode;
-    pstDrvHdrAttr->enColorimetry    = pstHdrAttr->enColorimetry;
-    pstDrvHdrAttr->enEotfType	    = pstHdrAttr->enEotfType;
-    pstDrvHdrAttr->enMetadataId	    = pstHdrAttr->enMetadataId;
+    pstDrvHdrAttr->enColorimetry    = (HDMI_HDR_COLORIMETRY) pstHdrAttr->enColorimetry;
+    pstDrvHdrAttr->enEotfType	    = (HDMI_EOTF_TYPE_E) pstHdrAttr->enEotfType;
+    pstDrvHdrAttr->enMetadataId	    = (HDMI_STATIC_META_TYPE_ID_E) pstHdrAttr->enMetadataId;
     memcpy(&(pstDrvHdrAttr->unDescriptor), &(pstHdrAttr->unDescriptor), sizeof(HDMI_META_DESCRIPTOR_UN));
 }
 
@@ -1695,7 +1695,7 @@ HI_S32 HI_DRV_HDMI_SetHdrMode(HI_UNF_HDMI_ID_E enHdmi, HI_DRV_HDMI_HDR_USERMODE_
     HDMI_HDR_USERMODE_E enHdrMode = HDMI_HDR_USERMODE_SDR;
 
     CHECK_HDMI_OPEN(enHdmi);
-    pstHdmiDev = GetHdmiDevice(enHdmi);
+    pstHdmiDev = GetHdmiDevice((HDMI_DEVICE_ID_E) enHdmi);
     if(pstHdmiDev == HI_NULL || enUserHdrMode >= HI_DRV_HDMI_HDR_USERMODE_BUTT)
     {
 	HDMI_ERR("pstHdmiDev is null or enUserHdrMode is illegal.\n");
@@ -1717,7 +1717,7 @@ HI_S32 HI_DRV_HDMI_SetHdrMode(HI_UNF_HDMI_ID_E enHdmi, HI_DRV_HDMI_HDR_USERMODE_
 	    HDMI_INFO("force change OutColorSpace(%d) to YCbCr444 and DeepColorMode(%d) 8bit\n", pstAppAttr->enDeepColorMode, pstAppAttr->enDeepColorMode);
 
 	    memset(&stDrvVoAttr, 0, sizeof(DRV_HDMI_VO_ATTR_S));
-	    stDrvVoAttr.enHdmiID = enHdmi;
+	    stDrvVoAttr.enHdmiID = (HDMI_DEVICE_ID_E) enHdmi;
 
 	    s32Ret = HdmiExtIoctl(CMD_HDMI_STOP, &enHdmi);
 	    s32Ret = HdmiExtIoctl(CMD_HDMI_GET_VO_ATTR, &stDrvVoAttr);
@@ -1761,7 +1761,7 @@ HI_S32 HI_DRV_HDMI_SetHdrAttr(HI_UNF_HDMI_ID_E enHdmi, HI_DRV_HDMI_HDR_ATTR_S *p
 
     CHECK_HDMI_OPEN(enHdmi);
 
-    pstHdmiDev = GetHdmiDevice(enHdmi);
+    pstHdmiDev = GetHdmiDevice((HDMI_DEVICE_ID_E) enHdmi);
     CHECK_HDMI_PTR_NULL(pstHdrAttr);
     CHECK_HDMI_PTR_NULL(pstHdmiDev);
 
@@ -1773,7 +1773,7 @@ HI_S32 HI_DRV_HDMI_SetHdrAttr(HI_UNF_HDMI_ID_E enHdmi, HI_DRV_HDMI_HDR_ATTR_S *p
     memset(&stDrvHdr, 0, sizeof(DRV_HDMI_HDR_S));
     pDrvHdrAttr = &stDrvHdr.stHdrAttr;
 
-    stDrvHdr.enHdmiID = enHdmi;
+    stDrvHdr.enHdmiID = (HDMI_DEVICE_ID_E) enHdmi;
     Disp2HdmidrAttr(pstHdmiDev, pDrvHdrAttr, pstHdrAttr);
 
     s32Ret = HdmiExtIoctl(CMD_HDMI_SET_HDR_ATTR, &stDrvHdr);
@@ -1796,7 +1796,7 @@ HI_S32 HI_DRV_HDMI_GetVideoCapability(HI_UNF_HDMI_ID_E enHdmi, HI_DRV_HDMI_VIDEO
     CHECK_HDMI_PTR_NULL(pstVideoCap);
     CHECK_HDMI_OPEN(enHdmi);
 
-    stTmpVideoCap.enHdmiID = enHdmi;
+    stTmpVideoCap.enHdmiID = (HDMI_DEVICE_ID_E) enHdmi;
     s32Ret = HdmiExtIoctl(CMD_HDMI_GET_VIDEO_CAPABILITY, &stTmpVideoCap);
     if (s32Ret == HI_SUCCESS)
     {
@@ -1813,10 +1813,10 @@ HI_S32 HI_DRV_HDMI_Detach(HI_UNF_HDMI_ID_E enHdmi)
 
     CHECK_HDMI_OPEN(enHdmi);
 
-    pstHdmiDev = GetHdmiDevice(enHdmi);
+    pstHdmiDev = GetHdmiDevice((HDMI_DEVICE_ID_E) enHdmi);
     pstHdmiDev->stIntfStatus.u32DeAttachInTime = HDMI_OSAL_GetTimeInMs();
 
-    DRV_HDMI_ThreadStateSet(GetHdmiDevice(enHdmi), HDMI_THREAD_STATE_STOP);
+    DRV_HDMI_ThreadStateSet(GetHdmiDevice((HDMI_DEVICE_ID_E) enHdmi), HDMI_THREAD_STATE_STOP);
     s32Ret = HI_DRV_HDMI_PreFormat(enHdmi);
     if (s32Ret != HI_SUCCESS)
     {
@@ -1837,7 +1837,7 @@ HI_S32 HI_DRV_HDMI_Attach(HI_UNF_HDMI_ID_E enHdmi, HDMI_VIDEO_ATTR_S *pstVideoAt
     CHECK_HDMI_PTR_NULL(pstVideoAttr);
     CHECK_HDMI_OPEN(enHdmi);
 
-    pstHdmiDev = GetHdmiDevice(enHdmi);
+    pstHdmiDev = GetHdmiDevice((HDMI_DEVICE_ID_E) enHdmi);
     pstHdmiDev->stIntfStatus.u32AttachInTime = HDMI_OSAL_GetTimeInMs();
 
     s32Ret = HI_DRV_HDMI_SetFormat(enHdmi, pstVideoAttr);
@@ -1846,7 +1846,7 @@ HI_S32 HI_DRV_HDMI_Attach(HI_UNF_HDMI_ID_E enHdmi, HDMI_VIDEO_ATTR_S *pstVideoAt
 	    HDMI_ERR("HI_DRV_HDMI_SetFormat fail\n");
 	    return s32Ret;
     }
-    DRV_HDMI_ThreadStateSet(GetHdmiDevice(enHdmi), HDMI_THREAD_STATE_RUN);
+    DRV_HDMI_ThreadStateSet(GetHdmiDevice((HDMI_DEVICE_ID_E) enHdmi), HDMI_THREAD_STATE_RUN);
 
     pstHdmiDev->stIntfStatus.u32AttachOutTime = HDMI_OSAL_GetTimeInMs();
 
