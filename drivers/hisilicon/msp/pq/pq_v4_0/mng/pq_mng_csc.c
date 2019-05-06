@@ -1686,7 +1686,7 @@ HI_S32 PQ_MNG_GetCSCMode(HI_PQ_CSC_TYPE_E enCscTypeId, HI_PQ_VDP_CSC_S *pstCscMo
     }
 
     pstCscMode->bCSCEn	  = sg_stCscModeStat[enCscTypeId].bCSCEn;
-    pstCscMode->enCscMode = sg_stCscModeStat[enCscTypeId].enCscMode;
+    pstCscMode->enCscMode = (HI_PQ_CSC_MODE_E) sg_stCscModeStat[enCscTypeId].enCscMode;
     return HI_SUCCESS;
 }
 
@@ -2007,7 +2007,7 @@ HI_S32 PQ_MNG_GetCscCoef(HI_PQ_CSC_CRTL_S *pstCscCtrl, HI_PQ_CSC_MODE_E enCscMod
     }
     else
     {
-	enCscTypeId = pstCscCtrl->enCscType;
+	enCscTypeId = (HAL_PQ_CSC_TYPE_E) pstCscCtrl->enCscType;
 
 	/* Now About 2020 Setting is Normal setting */
 	if ((enCscMode >= HI_PQ_CSC_RGB2RGB_709_2020) && (enCscMode <= HI_PQ_CSC_RGB2YUV_2020_601_L))
@@ -2017,8 +2017,8 @@ HI_S32 PQ_MNG_GetCscCoef(HI_PQ_CSC_CRTL_S *pstCscCtrl, HI_PQ_CSC_MODE_E enCscMod
 	else if (HI_TRUE == pstCscCtrl->bCSCEn) /* reload picture setting for DTV request */
 	{
 	    sg_stCscModeStat[enCscTypeId].bCSCEn    = pstCscCtrl->bCSCEn;
-	    sg_stCscModeStat[enCscTypeId].enCscMode = enCscMode;
-	    PQ_MNG_SetCSCMode(enCscTypeId, enCscMode);
+	    sg_stCscModeStat[enCscTypeId].enCscMode = (CSC_MODE_E) enCscMode;
+	    PQ_MNG_SetCSCMode(enCscTypeId, (CSC_MODE_E) enCscMode);
 	    PQ_MNG_SetCSCPictureParam(enCscTypeId, (CSC_COEF_S *)pstCscCoef, (CSC_DCCOEF_S *)pstCscDcCoef);
 	}
 	else
