@@ -1172,7 +1172,7 @@ static HI_VOID processor_convert_desc_info_part2(OMXVDEC_CHAN_CTX *pchan, IMAGE 
 	    pstFrame->eFrmType = HI_DRV_FT_FPK;
 	    break;
 	default:
-	    pstFrame->eFrmType = FRAME_PACKING_TYPE_BUTT;
+	    pstFrame->eFrmType = (HI_DRV_FRAME_TYPE_E) FRAME_PACKING_TYPE_BUTT;
 	    break;
 	}
     }
