@@ -1411,8 +1411,8 @@ static inline HI_VOID SetInCsc(HWC_NODE_S *pstNode)
     pstNode->unVhdCscParam0.stBits.bit15Param1 = 0 << 2;
     pstNode->unVhdCscParam1.stBits.bit15Param0 = 408 << 2;
     pstNode->unVhdCscParam1.stBits.bit15Param1 = 297 << 2;
-    pstNode->unVhdCscParam2.stBits.bit15Param0 = -100 << 2;
-    pstNode->unVhdCscParam2.stBits.bit15Param1 = -208 << 2;
+    pstNode->unVhdCscParam2.stBits.bit15Param0 = -400;
+    pstNode->unVhdCscParam2.stBits.bit15Param1 = -832;
     pstNode->unVhdCscParam3.stBits.bit15Param0 = 297 << 2;
     pstNode->unVhdCscParam3.stBits.bit15Param1 = 516 << 2;
     pstNode->unVhdCscParam4.stBits.bit15Param0 = 0 << 2;
@@ -1434,12 +1434,12 @@ static inline HI_VOID SetOutCsc(HWC_NODE_S* pstNode)
     pstNode->unOutCscParam0.stBits.bit15Param0 = 66 << 2;
     pstNode->unOutCscParam0.stBits.bit15Param1 = 129 << 2;
     pstNode->unOutCscParam1.stBits.bit15Param0 = 25 << 2;
-    pstNode->unOutCscParam1.stBits.bit15Param1 = -38 << 2;
-    pstNode->unOutCscParam2.stBits.bit15Param0 = -74 << 2;
+    pstNode->unOutCscParam1.stBits.bit15Param1 = -152;
+    pstNode->unOutCscParam2.stBits.bit15Param0 = -296;
     pstNode->unOutCscParam2.stBits.bit15Param1 = 112 << 2;
     pstNode->unOutCscParam3.stBits.bit15Param0 = 112 << 2;
-    pstNode->unOutCscParam3.stBits.bit15Param1 = -94 << 2;
-    pstNode->unOutCscParam4.stBits.bit15Param0 = -18 << 2;
+    pstNode->unOutCscParam3.stBits.bit15Param1 = -376;
+    pstNode->unOutCscParam4.stBits.bit15Param0 = -72;
 
     return;
 }
