@@ -594,7 +594,7 @@ HI_S32 DRV_HDMI_AVIInfoFrameSend(HDMI_INFOFRAME_S* pstInfoFrame, HI_BOOL bEnable
 
     pstAVIInfoframe->picture_aspect	    = pstVOAttr->enPictureAspect;
     pstAVIInfoframe->active_aspect	    = pstVOAttr->enActiveAspect;
-    pstAVIInfoframe->nups		    = pstVOAttr->enPictureScaling;
+    pstAVIInfoframe->nups		    = (enum hdmi_nups) pstVOAttr->enPictureScaling;
     pstAVIInfoframe->pixel_repeat	    = pstVOAttr->u32PixelRepeat;
     pstAVIInfoframe->active_info_valid	    = HI_TRUE;
     pstAVIInfoframe->horizontal_bar_valid   = HI_FALSE;
