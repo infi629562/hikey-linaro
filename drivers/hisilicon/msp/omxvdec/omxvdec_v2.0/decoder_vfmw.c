@@ -1292,7 +1292,7 @@ HI_S32 decoder_create_inst(OMXVDEC_CHAN_CTX *pchan, OMXVDEC_DRV_CFG *pdrv_cfg)
     pchan->is_compress = g_CompressEnable;
     pchan_cfg->s32VcmpEn = (pchan->is_compress == 0) ? 2: 1;
 
-    pchan_cfg->AndroidTest = pchan->android_test;
+    pchan_cfg->AndroidTest = (VBOOL) pchan->android_test;
 
     ret = (pVfmwFunc->pfnVfmwControl)(pchan->decoder_id, VDEC_CID_CFG_CHAN, pchan_cfg, sizeof(VDEC_CHAN_CFG_S));
     if (ret != HI_SUCCESS)
