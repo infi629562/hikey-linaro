@@ -1514,7 +1514,7 @@ static HI_S32 PQ_MNG_SetCSCPictureParam(HAL_PQ_CSC_TYPE_E enCscTpyeId, CSC_COEF_
 
 HI_S32 PQ_MNG_SetCSCVideoSetting(HI_PQ_DISPLAY_E enDisp, HI_PQ_PICTURE_SETTING_S *pstPicSetting)
 {
-    if ((pstPicSetting == HI_NULL))
+    if (pstPicSetting == HI_NULL)
     {
 	HI_ERR_PQ("pstPicSetting is Null!\n");
 	return HI_FAILURE;
