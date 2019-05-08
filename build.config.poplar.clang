@@ -1,0 +1,16 @@
+ARCH=arm64
+BRANCH=mirror-aosp-android-poplar-linaro-4.9
+CC=clang
+CLANG_TRIPLE=aarch64-linux-gnu-
+CROSS_COMPILE=aarch64-linux-android-
+DEFCONFIG=poplar_defconfig
+EXTRA_CMDS=''
+KERNEL_DIR=hikey-linaro
+CLANG_PREBUILT_BIN=prebuilts-master/clang/host/linux-x86/clang-r349610/bin
+LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN=prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin
+FILES="
+arch/arm64/boot/Image
+arch/arm64/boot/dts/hisilicon/hi3798cv200-poplar.dtb
+vmlinux
+System.map
+"
