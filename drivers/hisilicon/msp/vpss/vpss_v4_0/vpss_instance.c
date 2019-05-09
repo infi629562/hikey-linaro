@@ -1957,7 +1957,7 @@ HI_S32 VPSS_INST_CheckUndoImage(VPSS_INSTANCE_S *pstInstance)
 	stVpssPqInfo.u32Height = pstEntity->stOriInfo.u32Height;
 	stVpssPqInfo.u32FrameRate = pstEntity->stOriInfo.u32FrmRate;
 	stVpssPqInfo.bInterlace = pstEntity->stOriInfo.bInterlace;
-	pstInstance->stPQModule.enSceneMode = pstInstance->stUsrInstCfg.enSceneMode;
+	pstInstance->stPQModule.enSceneMode = (HI_PQ_SCENEMODE_E) pstInstance->stUsrInstCfg.enSceneMode;
 
 	(HI_VOID)DRV_PQ_UpdateVpssPQ(pstInstance->ID, &stVpssPqInfo, &pstInstance->stPqRegData, &pstInstance->stPqWbcReg, &pstInstance->stPQModule);
     }
