@@ -367,7 +367,7 @@ HI_S32 USRDATA_Put(HI_HANDLE hHandle, USRDAT* pstUsrData, HI_UNF_VIDEO_USERDATA_
 
     pstPutData = (VDEC_VIDEO_USERDATA_S *)stBuf.pu8KnlVirAddr;
     pstPutData->enBroadcastProfile = HI_UNF_VIDEO_BROADCAST_DVB;
-    pstPutData->enPositionInStream = pstUsrData->from;
+    pstPutData->enPositionInStream = (HI_UNF_VIDEO_USER_DATA_POSITION_E) pstUsrData->from;
     pstPutData->u32Pts = (HI_U32)pstUsrData->PTS;
     pstPutData->u32SeqCnt = pstUsrData->seq_cnt;
     pstPutData->u32SeqFrameCnt = pstUsrData->seq_img_cnt;
