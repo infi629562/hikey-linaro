@@ -363,8 +363,6 @@ typedef struct tagWINDOW_S
 #define MAX_RELEASE_NO	16
 
 typedef	 struct task_struct *WIN_THREAD;
-typedef	  wait_queue_head_t    WAIT_QUEUE_HAEAD;
-
 typedef enum tagTHREAT_EVENT_E
 {
     EVENT_NOTHING= 0,

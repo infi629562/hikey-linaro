@@ -169,7 +169,6 @@ typedef struct tagDISP_ATTACH_ID_S
 #ifndef __DISP_PLATFORM_BOOT__
 
 typedef	 struct task_struct *DISP_THREAD;
-typedef	  wait_queue_head_t    WAIT_QUEUE_HAEAD;
 
 typedef enum tagDISP_THREAT_EVENT_E
 {
