@@ -656,7 +656,7 @@ HI_VOID DRV_VBI_TtxDataParse(HI_U8 *pPesBuf, HI_U32 TtxDataLen)
     }
 
     /* check the sending order of graph-text data */
-    if ((*(pPesBuf + 3) == 0xE4))
+    if (*(pPesBuf + 3) == 0xE4)
     {
 	pTtxBlock->TtxSeqFlag = HI_TRUE;
     }
