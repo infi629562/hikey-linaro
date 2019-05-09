@@ -7046,7 +7046,7 @@ static HI_VOID ConvertFrm_GetBufAddr(HI_UNF_VCODEC_TYPE_E enType,
     }
     else
     {
-	if ( (pstImage->CompressEn == 0))
+	if (pstImage->CompressEn == 0)
 	{
 	    pstFrame->stBufAddr[0].u32PhyAddr_YHead    = pstImage->top_luma_phy_addr;
 	    pstFrame->stBufAddr[0].u32PhyAddr_Y	       = pstImage->top_luma_phy_addr;
@@ -7103,7 +7103,7 @@ static HI_VOID ConvertFrm_GetBufAddr(HI_UNF_VCODEC_TYPE_E enType,
 	pstFrame->stBufAddr[1].u32Head_Stride	      = pstImage->head_stride;
 	pstFrame->stBufAddr[1].u32Head_Size	      = pstImage->head_info_size;
 
-	if ((pstImage->CompressEn == 0))
+	if (pstImage->CompressEn == 0)
 	{
 	    pstFrame->stBufAddr[1].u32PhyAddr_Y	      = pstImage->top_luma_phy_addr_1;
 	    pstFrame->stBufAddr[1].u32PhyAddr_C	      = pstImage->top_chrom_phy_addr_1;
