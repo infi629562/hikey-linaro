@@ -62,7 +62,7 @@ extern HI_U32  u32SaveCnt;
 #define BUFMNG_ASSERT_RETURN(Condition, RetValue)		   \
 do								   \
 {								   \
-    if (!Condition)						   \
+    if (!(Condition))						   \
     {								   \
 	HI_ERR_BUFMNG("[%s %d]assert warning\n",__func__,__LINE__);\
 	return RetValue;					   \
