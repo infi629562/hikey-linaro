@@ -3119,7 +3119,7 @@ HI_S32 DISP_SetFormat(HI_DRV_DISPLAY_E enDisp, HI_DRV_DISP_STEREO_MODE_E enStere
 	return HI_ERR_DISP_INVALID_PARA;
     }
 
-    pstDisp->stSetting.eDispMode = enStereo;
+    pstDisp->stSetting.eDispMode = (HI_DRV_DISP_STEREO_E) enStereo;
     pstDisp->stSetting.enFormat = enEncFmt2;
 
 
@@ -3231,7 +3231,7 @@ HI_S32 DISP_GetFormat(HI_DRV_DISPLAY_E enDisp, HI_DRV_DISP_STEREO_MODE_E* penSte
     DispGetPointerByID(enDisp, pstDisp);
 
     // s3 if display is not enabled, set format and return
-    *penStereo = pstDisp->stSetting.eDispMode;
+    *penStereo = (HI_DRV_DISP_STEREO_MODE_E) pstDisp->stSetting.eDispMode;
     *penEncFmt = pstDisp->stSetting.enFormat;
 
     return HI_SUCCESS;
@@ -3696,7 +3696,7 @@ HI_S32 DISP_SetCustomTiming(HI_DRV_DISPLAY_E enDisp, HI_DRV_DISP_TIMING_S* pstTi
 	pstTiming->u32AspectRatioH = pstTiming->u32VACT;
     }
 
-    pstDisp->stSetting.eDispMode = enStereo;
+    pstDisp->stSetting.eDispMode = (HI_DRV_DISP_STEREO_E) enStereo;
     pstDisp->stSetting.enFormat = enEncFmt;
     pstDisp->stSetting.stCustomTimg = *pstTiming;
 
