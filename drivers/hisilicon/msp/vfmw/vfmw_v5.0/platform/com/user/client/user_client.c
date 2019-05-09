@@ -160,7 +160,7 @@ static SINT32 VFMW_UC_ProcessCallBack(VOID)
 
     if (g_pCallbackBuf == NULL)
     {
-        return;
+        return VDEC_ERR;
     }
 
     while (g_pCallbackBuf->Tail != g_pCallbackBuf->Head)
