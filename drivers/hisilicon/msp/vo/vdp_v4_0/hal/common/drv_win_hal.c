@@ -769,7 +769,7 @@ VDP_CBM_MIX_E GetMixerID(VDP_LAYER_VID_E eLayer)
     else
     {
 	WIN_ERROR("Pass invalid layer !\n");
-	return VDP_CBM_BUTT;
+	return (VDP_CBM_MIX_E) VDP_CBM_BUTT;
     }
 }
 
