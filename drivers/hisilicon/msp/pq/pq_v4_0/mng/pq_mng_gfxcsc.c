@@ -904,15 +904,15 @@ HI_VOID PQ_MNG_CalcWcgMatrix(PQ_GFX_CSC_MODE_S *pstGfxCscMode, PQ_GFX_CSC_COEF_S
     {
 	if (PQ_GFX_CS_eYCbCr_2020 == eGfxOutputType) /* RGB_2020 -> YCbCr_2020 */
 	{
-	    pstGfxCscCoef->csc_coef00 =	 0.2256;
-	    pstGfxCscCoef->csc_coef01 =	 0.5823;
-	    pstGfxCscCoef->csc_coef02 =	 0.0509;
-	    pstGfxCscCoef->csc_coef10 = -0.1227;
-	    pstGfxCscCoef->csc_coef11 = -0.3166;
-	    pstGfxCscCoef->csc_coef12 =	 0.4392;
-	    pstGfxCscCoef->csc_coef20 =	 0.4392;
-	    pstGfxCscCoef->csc_coef21 = -0.4039;
-	    pstGfxCscCoef->csc_coef22 = -0.0353;
+	    pstGfxCscCoef->csc_coef00 =	0;
+	    pstGfxCscCoef->csc_coef01 =	0;
+	    pstGfxCscCoef->csc_coef02 =	0;
+	    pstGfxCscCoef->csc_coef10 = 0;
+	    pstGfxCscCoef->csc_coef11 = 0;
+	    pstGfxCscCoef->csc_coef12 =	0;
+	    pstGfxCscCoef->csc_coef20 =	0;
+	    pstGfxCscCoef->csc_coef21 = 0;
+	    pstGfxCscCoef->csc_coef22 = 0;
 	}
 	else if (PQ_GFX_CS_eRGB_2020 == eGfxOutputType) /* RGB_2020 -> RGB_2020 */ /* identity */
 	{
@@ -928,27 +928,27 @@ HI_VOID PQ_MNG_CalcWcgMatrix(PQ_GFX_CSC_MODE_S *pstGfxCscMode, PQ_GFX_CSC_COEF_S
 	}
 	else if (PQ_GFX_CS_eRGB_709 == eGfxOutputType) /* RGB_2020 -> RGB_709 */
 	{
-	    pstGfxCscCoef->csc_coef00 =	 1.6605;
-	    pstGfxCscCoef->csc_coef01 = -0.5877;
-	    pstGfxCscCoef->csc_coef02 = -0.0728;
-	    pstGfxCscCoef->csc_coef10 = -0.1246;
-	    pstGfxCscCoef->csc_coef11 =	 1.1329;
-	    pstGfxCscCoef->csc_coef12 = -0.0083;
-	    pstGfxCscCoef->csc_coef20 = -0.0182;
-	    pstGfxCscCoef->csc_coef21 = -0.1006;
-	    pstGfxCscCoef->csc_coef22 =	 1.1188;
+	    pstGfxCscCoef->csc_coef00 =	1;
+	    pstGfxCscCoef->csc_coef01 = 0;
+	    pstGfxCscCoef->csc_coef02 = 0;
+	    pstGfxCscCoef->csc_coef10 = 0;
+	    pstGfxCscCoef->csc_coef11 =	1;
+	    pstGfxCscCoef->csc_coef12 = 0;
+	    pstGfxCscCoef->csc_coef20 = 0;
+	    pstGfxCscCoef->csc_coef21 = 0;
+	    pstGfxCscCoef->csc_coef22 =	1;
 	}
 	else if (PQ_GFX_CS_eRGB_601 == eGfxOutputType) /* RGB_2020 -> RGB_601 */ /* same to RGB_2020 -> RGB_709 */
 	{
-	    pstGfxCscCoef->csc_coef00 =	 1.6605;
-	    pstGfxCscCoef->csc_coef01 = -0.5877;
-	    pstGfxCscCoef->csc_coef02 = -0.0728;
-	    pstGfxCscCoef->csc_coef10 = -0.1246;
-	    pstGfxCscCoef->csc_coef11 =	 1.1329;
-	    pstGfxCscCoef->csc_coef12 = -0.0083;
-	    pstGfxCscCoef->csc_coef20 = -0.0182;
-	    pstGfxCscCoef->csc_coef21 = -0.1006;
-	    pstGfxCscCoef->csc_coef22 =	 1.1188;
+	    pstGfxCscCoef->csc_coef00 =	1;
+	    pstGfxCscCoef->csc_coef01 = 0;
+	    pstGfxCscCoef->csc_coef02 = 0;
+	    pstGfxCscCoef->csc_coef10 = 0;
+	    pstGfxCscCoef->csc_coef11 =	1;
+	    pstGfxCscCoef->csc_coef12 = 0;
+	    pstGfxCscCoef->csc_coef20 = 0;
+	    pstGfxCscCoef->csc_coef21 = 0;
+	    pstGfxCscCoef->csc_coef22 =	1;
 	}
 	else /* identity */
 	{
@@ -967,27 +967,27 @@ HI_VOID PQ_MNG_CalcWcgMatrix(PQ_GFX_CSC_MODE_S *pstGfxCscMode, PQ_GFX_CSC_COEF_S
     {
 	if (PQ_GFX_CS_eYCbCr_709 == eGfxOutputType) /* RGB_709 -> YCbCr_709 */
 	{
-	    pstGfxCscCoef->csc_coef00 =	 0.1826;
-	    pstGfxCscCoef->csc_coef01 =	 0.6142;
-	    pstGfxCscCoef->csc_coef02 =	 0.0620;
-	    pstGfxCscCoef->csc_coef10 = -0.1006;
-	    pstGfxCscCoef->csc_coef11 = -0.3386;
-	    pstGfxCscCoef->csc_coef12 =	 0.4392;
-	    pstGfxCscCoef->csc_coef20 =	 0.4392;
-	    pstGfxCscCoef->csc_coef21 = -0.3989;
-	    pstGfxCscCoef->csc_coef22 = -0.0403;
+	    pstGfxCscCoef->csc_coef00 =	0;
+	    pstGfxCscCoef->csc_coef01 =	0;
+	    pstGfxCscCoef->csc_coef02 =	0;
+	    pstGfxCscCoef->csc_coef10 = 0;
+	    pstGfxCscCoef->csc_coef11 = 0;
+	    pstGfxCscCoef->csc_coef12 =	0;
+	    pstGfxCscCoef->csc_coef20 =	0;
+	    pstGfxCscCoef->csc_coef21 = 0;
+	    pstGfxCscCoef->csc_coef22 = 0;
 	}
 	else if (PQ_GFX_CS_eRGB_2020 == eGfxOutputType) /* RGB_709 -> RGB_2020 */
 	{
-	    pstGfxCscCoef->csc_coef00 = 0.6274;
-	    pstGfxCscCoef->csc_coef01 = 0.3293;
-	    pstGfxCscCoef->csc_coef02 = 0.0433;
-	    pstGfxCscCoef->csc_coef10 = 0.0692;
-	    pstGfxCscCoef->csc_coef11 = 0.9194;
-	    pstGfxCscCoef->csc_coef12 = 0.0114;
-	    pstGfxCscCoef->csc_coef20 = 0.0163;
-	    pstGfxCscCoef->csc_coef21 = 0.0880;
-	    pstGfxCscCoef->csc_coef22 = 0.8956;
+	    pstGfxCscCoef->csc_coef00 = 0;
+	    pstGfxCscCoef->csc_coef01 = 0;
+	    pstGfxCscCoef->csc_coef02 = 0;
+	    pstGfxCscCoef->csc_coef10 = 0;
+	    pstGfxCscCoef->csc_coef11 = 0;
+	    pstGfxCscCoef->csc_coef12 = 0;
+	    pstGfxCscCoef->csc_coef20 = 0;
+	    pstGfxCscCoef->csc_coef21 = 0;
+	    pstGfxCscCoef->csc_coef22 = 0;
 	}
 	else /* identity */
 	{
@@ -1006,15 +1006,15 @@ HI_VOID PQ_MNG_CalcWcgMatrix(PQ_GFX_CSC_MODE_S *pstGfxCscMode, PQ_GFX_CSC_COEF_S
     {
 	if (PQ_GFX_CS_eRGB_2020 == eGfxOutputType) /* RGB_601 -> RGB_2020; same to RGB_709 -> RGB_2020 */
 	{
-	    pstGfxCscCoef->csc_coef00 = 0.6274;
-	    pstGfxCscCoef->csc_coef01 = 0.3293;
-	    pstGfxCscCoef->csc_coef02 = 0.0433;
-	    pstGfxCscCoef->csc_coef10 = 0.0692;
-	    pstGfxCscCoef->csc_coef11 = 0.9194;
-	    pstGfxCscCoef->csc_coef12 = 0.0114;
-	    pstGfxCscCoef->csc_coef20 = 0.0163;
-	    pstGfxCscCoef->csc_coef21 = 0.0880;
-	    pstGfxCscCoef->csc_coef22 = 0.8956;
+	    pstGfxCscCoef->csc_coef00 = 0;
+	    pstGfxCscCoef->csc_coef01 = 0;
+	    pstGfxCscCoef->csc_coef02 = 0;
+	    pstGfxCscCoef->csc_coef10 = 0;
+	    pstGfxCscCoef->csc_coef11 = 0;
+	    pstGfxCscCoef->csc_coef12 = 0;
+	    pstGfxCscCoef->csc_coef20 = 0;
+	    pstGfxCscCoef->csc_coef21 = 0;
+	    pstGfxCscCoef->csc_coef22 = 0;
 	}
 	else /* Null */
 	{
