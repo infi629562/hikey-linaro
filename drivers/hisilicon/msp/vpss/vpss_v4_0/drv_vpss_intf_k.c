@@ -604,7 +604,7 @@ HI_S32 HI_DRV_VPSS_SetSourceMode(VPSS_HANDLE hVPSS,
 
 	    stSrcInfo.pfnAcqCallback = (PFN_IN_RlsCallback)pstInstance->stSrcFuncs.VPSS_GET_SRCIMAGE;
 	    stSrcInfo.pfnRlsCallback = (PFN_IN_RlsCallback)pstInstance->stSrcFuncs.VPSS_REL_SRCIMAGE;
-	    stSrcInfo.enMode = VPSS_SOURCE_MODE_VPSSACTIVE;
+	    stSrcInfo.enMode = (VPSS_IN_MODE_E) VPSS_SOURCE_MODE_VPSSACTIVE;
 	    stSrcInfo.hSource = pstInstance->ID;
 	    VPSS_IN_SetSrcMode(&(pstInstance->stInEntity), stSrcInfo);
 	    return HI_SUCCESS;
