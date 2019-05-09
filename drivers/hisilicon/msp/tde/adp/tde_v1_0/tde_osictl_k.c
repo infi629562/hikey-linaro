@@ -2183,7 +2183,7 @@ STATIC INLINE HI_S32 TdeOsiSetHighQualityMbReizePara(TDE_HANDLE s32Handle,TDE2_M
      TDE_FILLUP_RECT_BY_DRVSURFACE(stMbPara->stInRect, stMbPara->stDrvS2);
      TDE_FILLUP_RECT_BY_DRVSURFACE(stOutRect, stMbPara->stDrvS2Tmp);
      TdeOsiSetFilterOptAdjInfo(&(stMbPara->stDrvS2), &(stMbPara->stDrvS2Tmp), &(stMbPara->stFilterOpt), TDE_CHILD_SCALE_MBC);
-     if ((s32Ret = TdeOsiSetFilterChildNode(s32Handle, pstHWNodePass2, &(stMbPara->stInRect), &stOutRect, HI_FALSE /*pMbOpt->bDeflicker*/,
+     if ((s32Ret = TdeOsiSetFilterChildNode(s32Handle, pstHWNodePass2, &(stMbPara->stInRect), &stOutRect, TDE2_DEFLICKER_MODE_NONE /*pMbOpt->bDeflicker*/,
 				       &(stMbPara->stFilterOpt))) < 0)
      {
 	 TdeOsiListPutPhyBuff(stMbPara->u32WorkBufNum);
@@ -2274,7 +2274,7 @@ STATIC INLINE HI_S32 TdeOsiSetMiddleQualityMbReizePara(TDE_HANDLE s32Handle, TDE
     stMbPara->stFilterOpt.stAdjInfo.enScaleMode = TDE_CHILD_SCALE_MBC;
     TdeOsiSetFilterOptAdjInfo(&(stMbPara->stDrvS2), &(stMbPara->stDrvS1Tmp), &(stMbPara->stFilterOpt), TDE_CHILD_SCALE_MBC);
 
-    if ((s32Ret = TdeOsiSetFilterChildNode(s32Handle, pstHWNode, &(stMbPara->stInRect), &stOutRect, HI_FALSE,
+    if ((s32Ret = TdeOsiSetFilterChildNode(s32Handle, pstHWNode, &(stMbPara->stInRect), &stOutRect, TDE2_DEFLICKER_MODE_NONE,
 					   &(stMbPara->stFilterOpt))) < 0)
     {
 	TdeOsiListPutPhyBuff(stMbPara->u32WorkBufNum);
