@@ -2630,7 +2630,7 @@ HI_S32 VPSS_HAL_SetDetileNode_STEP1(VPSS_IP_E enIP, VPSS_HAL_INFO_S *pstHalInfo,
     }
 
     /* ֡��Ϣ���� */
-    VPSS_REG_SetReadPixBitWidth(pu32AppVir, NEXT2_FIELD, pstHalInfo->stInInfo.enBitWidth);
+    VPSS_REG_SetReadPixBitWidth(pu32AppVir, (REG_CHANELPOS_E) NEXT2_FIELD, pstHalInfo->stInInfo.enBitWidth);
     VPSS_REG_SetImgFormat(pu32AppVir, pstHalInfo->stInInfo.enFormat);
 
     VPSS_REG_SetImgSize(pu32AppVir,
@@ -2744,7 +2744,7 @@ HI_S32 VPSS_HAL_SetFirst3FieldNode_STEP2(VPSS_IP_E enIP, VPSS_HAL_INFO_S *pstHal
     VPSS_REG_SetInCropEn(pu32AppVir, HI_FALSE);
 
     /* ֡��Ϣ���� */
-    VPSS_REG_SetReadPixBitWidth(pu32AppVir, NEXT2_FIELD, pstHalInfo->stInInfo.enBitWidth);
+    VPSS_REG_SetReadPixBitWidth(pu32AppVir, (REG_CHANELPOS_E) NEXT2_FIELD, pstHalInfo->stInInfo.enBitWidth);
 
     VPSS_REG_SetImgFormat(pu32AppVir, pstHalInfo->stDeTileFrame.enFormat);
 
@@ -2895,7 +2895,7 @@ HI_S32 VPSS_HAL_Set5FieldNode(VPSS_IP_E enIP, VPSS_HAL_INFO_S *pstHalInfo,
     }
 
     /* ֡��Ϣ���� */
-    VPSS_REG_SetReadPixBitWidth(pu32AppVir, NEXT2_FIELD, pstHalInfo->stInInfo.enBitWidth);
+    VPSS_REG_SetReadPixBitWidth(pu32AppVir, (REG_CHANELPOS_E) NEXT2_FIELD, pstHalInfo->stInInfo.enBitWidth);
 
     VPSS_REG_SetImgFormat(pu32AppVir, pstHalInfo->stInInfo.enFormat);
 
@@ -3490,7 +3490,7 @@ HI_S32 VPSS_HAL_SetNode_H265_Step1_Interlace(VPSS_IP_E enIP, VPSS_HAL_INFO_S *ps
 	VPSS_REG_SetDcmpEn(pu32AppVir, HI_FALSE);
     }
 
-    VPSS_REG_SetReadPixBitWidth(pu32AppVir, NEXT2_FIELD, pstHalInfo->stInInfo.enBitWidth);
+    VPSS_REG_SetReadPixBitWidth(pu32AppVir, (REG_CHANELPOS_E) NEXT2_FIELD, pstHalInfo->stInInfo.enBitWidth);
     VPSS_REG_SetImgFormat(pu32AppVir, pstHalInfo->stInInfo.enFormat);
 
     /* ����֡��Ϣ */
@@ -3746,7 +3746,7 @@ HI_S32 VPSS_HAL_SetNode_H265_Step2_Dei(VPSS_IP_E enIP, VPSS_HAL_INFO_S *pstHalIn
 			pstHalInfo->stInInfo.u32Width, pstHalInfo->stInInfo.u32Height * 2,
 			pstHalInfo->stInInfo.bProgressive);
 
-    VPSS_REG_SetReadPixBitWidth(pu32AppVir, NEXT2_FIELD, pstHalInfo->stInInfo.enBitWidth);
+    VPSS_REG_SetReadPixBitWidth(pu32AppVir, (REG_CHANELPOS_E) NEXT2_FIELD, pstHalInfo->stInInfo.enBitWidth);
 
     /*DEI*/
     VPSS_HAL_SetH265DeiCfg(enIP, pstHalInfo, pu32AppVir, u32AppPhy);
