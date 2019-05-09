@@ -429,7 +429,7 @@ HI_S32 DRV_WIN_ProcRead(struct seq_file *p, HI_VOID *v)
     BufferNum		:0		 |
     PixelFormat		:NA		 |
     */
-    if ( (pstProcInfo->enType == HI_DRV_WIN_ACTIVE_SLAVE))
+    if (pstProcInfo->enType == HI_DRV_WIN_ACTIVE_SLAVE)
     {
 	pstNewFrame = pstProcInfo->stIsogenyProcInfo.stSlaveProcInfo.pstSalveCfgFrame;
 
