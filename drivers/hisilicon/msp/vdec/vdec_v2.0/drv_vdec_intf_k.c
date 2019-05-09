@@ -1923,7 +1923,7 @@ static HI_S32 VDEC_Event_UsrData(VDEC_CHANNEL_S* pstChan, HI_HANDLE hHandle, HI_
 	}
 
 	pstChan->pstUsrData->stAttr[u32WriteID].enBroadcastProfile = HI_UNF_VIDEO_BROADCAST_DVB;
-	pstChan->pstUsrData->stAttr[u32WriteID].enPositionInStream = pstUsrData->from;
+	pstChan->pstUsrData->stAttr[u32WriteID].enPositionInStream = (HI_UNF_VIDEO_USER_DATA_POSITION_E) pstUsrData->from;
 	pstChan->pstUsrData->stAttr[u32WriteID].u32Pts = (HI_U32)pstUsrData->PTS;
 	pstChan->pstUsrData->stAttr[u32WriteID].u32SeqCnt = pstUsrData->seq_cnt;
 	pstChan->pstUsrData->stAttr[u32WriteID].u32SeqFrameCnt	= pstUsrData->seq_img_cnt;
@@ -3102,7 +3102,7 @@ static HI_S32 VDEC_SetAttr(VDEC_CHANNEL_S* pstChan)
     stVdecChanCfg.s32SedOnlyEnable = 0;
 #endif
 
-    stVdecChanCfg.s32DecOrderOutput =  pstCfg->bOrderOutput;
+    stVdecChanCfg.s32DecOrderOutput =  (OUTPUT_ORDER_E) pstCfg->bOrderOutput;
 
     stVdecChanCfg.eVidStd = VDEC_CodecTypeUnfToFmw(pstCfg->enType);
 
@@ -4511,7 +4511,7 @@ static HI_S32 VDEC_Chan_CreateVpss(HI_HANDLE hVdec, HI_HANDLE* phVpss)
 
 
     s_stVdecDrv.astChanEntity[hVdec].stVpssChan.eFramePackType = HI_UNF_FRAME_PACKING_TYPE_BUTT;
-    s_stVdecDrv.astChanEntity[hVdec].stVpssChan.enFrameBuffer = HI_DRV_VPSS_BUF_VPSS_ALLOC_MANAGE;//HI_DRV_VDEC_BUF_USER_ALLOC_MANAGE;//;
+    s_stVdecDrv.astChanEntity[hVdec].stVpssChan.enFrameBuffer = HI_DRV_VDEC_BUF_VPSS_ALLOC_MANAGE;
 
     s_stVdecDrv.astChanEntity[hVdec].stVpssChan.enVideoBypass = VDEC_VPSS_BYPASSMODE_BUTT;
 
@@ -7172,7 +7172,7 @@ static HI_VOID ConvertFrm_GetFrmType(HI_UNF_VCODEC_TYPE_E enType,
 		break;
 
 	    default:
-		pstFrame->eFrmType = FRAME_PACKING_TYPE_BUTT;
+		pstFrame->eFrmType = (HI_DRV_FRAME_TYPE_E) FRAME_PACKING_TYPE_BUTT;
 		break;
 	}
     }
