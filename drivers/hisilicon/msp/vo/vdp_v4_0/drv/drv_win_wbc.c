@@ -242,7 +242,7 @@ HI_VOID ISOGBNY_PqProcess(HI_DRV_VIDEO_FRAME_S* pstFrame,
     HI_VDP_PQ_INFO_S stTimingInfo;
 
     /*this is the current value.*/
-    stTimingInfo.enLayerId  = VDP_LAYER_VID3;
+    stTimingInfo.enLayerId  = PQ_VDP_LAYER_VID3;
     stTimingInfo.u32Width = ((HI_DRV_VIDEO_PRIVATE_S*)&pstFrame->u32Priv[0])->stVideoOriginalInfo.u32Width;
     stTimingInfo.u32Height = ((HI_DRV_VIDEO_PRIVATE_S*)&pstFrame->u32Priv[0])->stVideoOriginalInfo.u32Height;
 
