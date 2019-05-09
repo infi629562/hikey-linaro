@@ -154,7 +154,7 @@ extern "C" {
 #define VDEC_ASSERT(Condition)					       \
     do								       \
     {								       \
-	if (!Condition)						       \
+	if (!(Condition))						       \
 	{							       \
 	    HI_ERR_VDEC("[%s %d]assert warning\n",__func__,__LINE__);  \
 	    return;						       \
@@ -164,7 +164,7 @@ extern "C" {
 #define VDEC_ASSERT_RETURN(Condition, RetValue)			       \
     do								       \
     {								       \
-	if (!Condition)						       \
+	if (!(Condition))						       \
 	{							       \
 	    HI_ERR_VDEC("[%s %d]assert warning\n",__func__,__LINE__);  \
 	    return RetValue;					       \
