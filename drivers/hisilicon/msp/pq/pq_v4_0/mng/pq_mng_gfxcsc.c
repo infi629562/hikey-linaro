@@ -1518,7 +1518,7 @@ HI_S32 PQ_MNG_SetGfxCsc(HI_PQ_GFX_LAYER_E enGfxCscLayer, HI_PQ_GFX_CSC_PARA_S *p
 
 HI_S32 PQ_MNG_SetGfxCSCPictureSetting(HI_PQ_DISPLAY_E enDisp, HI_PQ_PICTURE_SETTING_S *pstPicSetting)
 {
-    if ((pstPicSetting == HI_NULL))
+    if (pstPicSetting == HI_NULL)
     {
 	/* can not build HI_ERR_PQ at Boot */
 	//HI_ERR_PQ("pstPicSetting is Null!\n");
