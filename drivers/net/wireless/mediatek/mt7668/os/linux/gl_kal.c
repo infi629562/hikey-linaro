@@ -152,7 +152,7 @@ static PUINT_8 apucPatchName[] = {
 	NULL
 };
 
-static PPUINT_8 appucFwNameTable[] = {
+PPUINT_8 appucFwNameTable[] = {
 	apucFwName
 };
 #if CFG_ASSERT_DUMP

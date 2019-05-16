@@ -3224,7 +3224,7 @@ int mtk_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *dev,
 	kalMemZero(&rCmdOper, sizeof(rCmdOper));
 	kalMemCopy(rCmdOper.aucPeerMac, peer, 6);
 
-	rCmdOper.oper = oper;
+	rCmdOper.oper = (ENUM_TDLS_LINK_OPER)oper;
 
 	kalIoctl(prGlueInfo, TdlsexLinkOper, &rCmdOper, sizeof(TDLS_CMD_LINK_OPER_T), FALSE, FALSE, FALSE,
 		 /* FALSE,    //6628 -> 6630  fgIsP2pOid-> x */
