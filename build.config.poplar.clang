@@ -1,7 +1,6 @@
 ARCH=arm64
 BRANCH=mirror-aosp-android-poplar-linaro-4.9
 CC=clang
-LD=ld.lld
 NM=llvm-nm
 OBJCOPY=llvm-objcopy
 CLANG_TRIPLE=aarch64-linux-gnu-
