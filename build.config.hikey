@@ -5,11 +5,11 @@ HIKEY_KERNEL_DIR=hikey-linaro
 
 KERNEL_DIR=${HIKEY_KERNEL_DIR}
 BRANCH=android-hikey-linaro-4.14
-DEFCONFIG=hikey960_defconfig
+DEFCONFIG=hikey_defconfig
 
 FILES="
 arch/arm64/boot/Image.gz-dtb
-arch/arm64/boot/dts/hisilicon/hi3660-hikey960.dtb
+arch/arm64/boot/dts/hisilicon/hi6220-hikey.dtb
 vmlinux
 System.map
 "
